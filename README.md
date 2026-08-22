@@ -9,8 +9,6 @@ This repository is a **public mirror**. The source of truth is
 `agent/skills/`. Do not open PRs here; change the skills in lucen-platform.
 CI copies `lucen-data` and `lucen-blocks` on every merge to `main`.
 
-The internal `supermetrics` skill is not published here.
-
 ## Install
 
 ```bash
