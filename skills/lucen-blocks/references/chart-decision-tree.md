@@ -38,6 +38,12 @@ What is the user trying to see?
 │    └─ funnel
 │         steps: ColumnSpec[] (min 2) from a **single result row**
 │
+├─ Which ad creatives are working (the user wants to SEE the ads)
+│    └─ gallery
+│         query at AD grain, so every row carries a creative id
+│         media_id = the Meta creative_id column; title_column = ad name
+│         metrics: up to 4; sort + limit ARE applied here (executor)
+│
 ├─ Exact values, many rows (>15), mixed column types, or "show me the data"
 │    └─ table
 │
@@ -65,6 +71,7 @@ See [layout-recipes.md](layout-recipes.md) for the JSON.
 | Situation | Do not use | Use instead |
 |---|---|---|
 | Time on X | `bar` as the first choice | `timeseries` |
+| "Show me the creatives" | `table` of ad names | `gallery` (ad-grain query) |
 | Ranking / long names | `pie`, vertical `bar` | horizontal `bar` |
 | >8 categories as a share | `pie` | `bar` (limit 8–15) or `table` |
 | vs previous period | extra SQL | page `comparison` + KPI `compare: true` |

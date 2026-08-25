@@ -108,3 +108,59 @@ Cards in the same row stretch to equal height automatically.
   ]
 }
 ```
+
+## Creatives page (Meta)
+
+KPI strip → gallery → supporting table, all on one ad-grain query plus one metrics
+query. The `gallery` is full width because the cards already grid themselves (2/3/4
+columns by viewport); do not put it in a `span 6` next to a chart.
+
+```json
+"body": [
+  {
+    "type": "row",
+    "id": "kpis",
+    "children": [
+      { "type": "kpi", "id": "k_spend", "span": 4, "title": "Inversión", "data": { "query": "<q_metrics>" }, "value": { "column": "spend", "format": "currency_compact", "direction": "neutral" } },
+      { "type": "kpi", "id": "k_roas", "span": 4, "title": "ROAS", "data": { "query": "<q_metrics>" }, "value": { "column": "roas", "format": "ratio", "direction": "higher_is_better" } },
+      { "type": "kpi", "id": "k_cpa", "span": 4, "title": "CPA", "data": { "query": "<q_metrics>" }, "value": { "column": "cpa", "format": "currency", "direction": "lower_is_better" } }
+    ]
+  },
+  {
+    "type": "gallery",
+    "id": "gal_creatives",
+    "span": 12,
+    "title": "Creativos",
+    "subtitle": "Top 24 por inversión en el período",
+    "data": { "query": "<q_ads>" },
+    "media_id": "creative_id",
+    "title_column": "ad_name",
+    "status_column": "status",
+    "metrics": [
+      { "column": "spend", "format": "currency_compact" },
+      { "column": "roas", "format": "ratio", "direction": "higher_is_better" },
+      { "column": "ctr", "format": "percent" }
+    ],
+    "sort": { "column": "spend", "order": "desc" },
+    "limit": 24
+  },
+  {
+    "type": "table",
+    "id": "tbl_ads",
+    "height": "lg",
+    "title": "Detalle por anuncio",
+    "data": { "query": "<q_ads>" },
+    "columns": [
+      { "column": "ad_name" },
+      { "column": "spend", "format": "currency" },
+      { "column": "roas", "format": "ratio" },
+      { "column": "ctr", "format": "percent" }
+    ]
+  }
+]
+```
+
+`<q_ads>` is one query, reused twice: the gallery's `limit` caps the cards, not the
+result set, so the table under it still lists every ad the query returned. Because both
+widgets read the same `query_version_id` with the same params, the executor runs one
+BigQuery job for both.
