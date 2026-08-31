@@ -6,7 +6,7 @@ description: >-
   their business data, metrics, dashboards, SQL over their warehouse, saved
   queries, or gold-layer tables. Requires the Lucen MCP server to be connected
   (read scope to query; write scope to save queries or draft pages).
-skill_version: 2026-08-28
+skill_version: 2026-08-31
 # Keep skill_version in sync with `_LUCEN_DATA_SKILL_VERSION` in
 # platform/src/lucen_platform/ai/mcp/server.py — the MCP `instructions` field
 # reads that constant and tells users to re-install when their local skill
@@ -113,6 +113,16 @@ field that says where it came from. Only `approval: "reviewed_in_portal"` means
 a person opened the version in Lucen's review screen (which shows the SQL) and
 approved it. For every other value, show the user the `sql` before pinning that
 query into a page other people read.
+
+On a `find_query` MISS, the response still carries `nearest.name` and
+`nearest.distance` — the closest saved query and how far it is from the user's
+question. When `nearest.distance` is close to the threshold (typically within
+about 0.1 of it), surface it as an alternative before writing fresh SQL:
+"there's no exact match, but the closest saved query is `<nearest.name>` —
+want that, or should I write new SQL?" A near miss is often a phrasing mismatch,
+not a real gap, and running the saved query is cheaper + already validated. A
+farther miss (well above the threshold) is a real MISS — go straight to
+`list_tables` + `run_bigquery`.
 
 ### run_query(query_version_id, params)
 
