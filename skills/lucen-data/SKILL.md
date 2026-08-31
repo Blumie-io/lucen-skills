@@ -6,6 +6,11 @@ description: >-
   their business data, metrics, dashboards, SQL over their warehouse, saved
   queries, or gold-layer tables. Requires the Lucen MCP server to be connected
   (read scope to query; write scope to save queries or draft pages).
+skill_version: 2026-08-28
+# Keep skill_version in sync with `_LUCEN_DATA_SKILL_VERSION` in
+# platform/src/lucen_platform/ai/mcp/server.py — the MCP `instructions` field
+# reads that constant and tells users to re-install when their local skill
+# predates the server-side version.
 ---
 
 # Querying Lucen data
