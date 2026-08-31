@@ -129,9 +129,18 @@ farther miss (well above the threshold) is a real MISS — go straight to
 Param values come from the query's `param_schema` (returned by
 `list_queries`). The common controls:
 
-- `date_range`: a preset string — `this_week`, `this_month`,
-  `last_30d`, `last_90d` — or a custom range:
-  `{"preset": "custom", "start": "2026-01-01", "end": "2026-01-31"}`
+- `date_range`: a preset string or a custom range.
+  - **Named presets**: `this_week`, `this_month`, `last_7d`, `last_30d`,
+    `last_90d`, `last_12m`, `today`, `yesterday`, `last_month`, `this_year`.
+  - **Dynamic rolling window**: `last_{N}d` / `last_{N}w` / `last_{N}m` for
+    any positive integer N up to 730 days. `last_9d`, `last_14d`, `last_2w`,
+    `last_6m` all work without a hardcoded literal — pick whatever fits the
+    user's phrasing.
+  - **Custom absolute range**:
+    `{"preset": "custom", "start": "2026-01-01", "end": "2026-01-31"}` for
+    anything the rolling / named forms don't cover.
+  - Unrecognized preset → the tool returns an error listing the allowed set.
+    Retry with a valid one instead of falling back silently.
 - `select` params (e.g. `platform`): pass the scalar value, or omit for
   "all".
 
