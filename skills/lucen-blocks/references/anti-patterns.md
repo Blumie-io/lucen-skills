@@ -13,7 +13,8 @@
 | Filter 3 of 4 widgets with a chip | Every widget’s query declares the param, or `ignores` |
 | `bind` a param the query doesn’t declare | Fix the SQL placeholders first |
 | Write `ARRAY_LENGTH(@platforms) = 0` for a `multi_select` | `COALESCE(ARRAY_LENGTH(@platforms), 0) = 0` — an empty ARRAY param arrives as NULL |
-| Vertical bars with 20-char labels | `orientation: "horizontal"` |
+| Truncate category names in SQL (`LEFT`, `SUBSTR`, `REGEXP_REPLACE`) so the chart fits | Leave the warehouse text intact. The renderer ellipsis-truncates ticks and shows the full label on hover |
+| Force `orientation: "horizontal"` only because labels are long | Horizontal is a ranking/readability choice, not a layout workaround |
 | Assume `palette: "categorical"` still exists | Use `lucen` / `ocean` / `mono` / `org` |
 | Promise you published the page | Send `preview_url`; human clicks Publish |
 

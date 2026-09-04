@@ -27,7 +27,9 @@ What is the user trying to see?
 │
 ├─ Which categories rank or compare (not time)
 │    └─ bar  (x = category)
-│         ├─ labels longer than ~12 characters → orientation: "horizontal"
+│         ├─ ranking a list of named items (ad groups, SKUs) → orientation:
+│         │    "horizontal" is easier to scan, not required. Do not shorten
+│         │    names in SQL; the renderer truncates ticks with a hover tooltip
 │         ├─ a second grouping column that repeats per x → series (stacked)
 │         └─ parts of a whole, 2–8 slices, all values ≥ 0, looks like a share
 │              (column name has pct/percent/share/rate, or values sum ~100 / ~1)
@@ -72,7 +74,7 @@ See [layout-recipes.md](layout-recipes.md) for the JSON.
 |---|---|---|
 | Time on X | `bar` as the first choice | `timeseries` |
 | "Show me the creatives" | `table` of ad names | `gallery` (ad-grain query) |
-| Ranking / long names | `pie`, vertical `bar` | horizontal `bar` |
+| Ranking a long list of names | `pie` | `bar` (horizontal is easier to scan; vertical is fine — never truncate names in SQL) |
 | >8 categories as a share | `pie` | `bar` (limit 8–15) or `table` |
 | vs previous period | extra SQL | page `comparison` + KPI `compare: true` |
 | Cost / CPA / ACOS KPI | default `direction` | `lower_is_better` |

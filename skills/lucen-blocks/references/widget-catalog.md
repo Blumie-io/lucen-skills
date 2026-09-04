@@ -41,7 +41,9 @@ multiplier and is never scaled (`6.22` → `6.22x`).
 ## bar
 
 Same props as `timeseries` minus `chart`; plus `orientation: "vertical"|"horizontal"`,
-`sort` and `limit`. Prefer `horizontal` for long category labels.
+`sort` and `limit`. Horizontal is easier to scan for a ranked list of names; vertical
+is fine for a handful of categories. Do not shorten labels in SQL — the renderer
+ellipsis-truncates ticks and shows the full text on hover.
 
 `sort` and `limit` here are declared but **not applied by anything** — order and cap in
 the saved SQL. See [anti-patterns.md](anti-patterns.md).
