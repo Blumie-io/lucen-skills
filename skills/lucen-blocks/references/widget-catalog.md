@@ -149,12 +149,15 @@ one param a query does not have to declare. This is what feeds KPI `compare: tru
 ## select
 
 Single-value dimension filter. `name`, `dimension` (the canonical dimension whose
-distinct values populate the options), `default`. Maps to a scalar `@<name>` SQL param.
-A widget's `on_click` targeting a `select` must use `mode: "replace"`.
+distinct values populate the options), `options` (optional static list, max 200; empty
+means the header falls back to a dimension-keyed options map at render time), `default`.
+Maps to a scalar `@<name>` SQL param. A widget's `on_click` targeting a `select` must
+use `mode: "replace"`.
 
 ## multi_select
 
 Multi-value dimension filter — the platform chips. `name`, `dimension`,
+`options` (optional static list, same fallback as `select`),
 `default: []`. Maps to an `ARRAY<STRING>` param; empty means "all". The saved SQL must
 be written as:
 

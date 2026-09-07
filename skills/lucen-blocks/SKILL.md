@@ -43,6 +43,11 @@ There is **no** `style` / `css` / `className` field. `"red"` is invalid — use 
 ]
 ```
 
+Add `select` / `multi_select` controls for any dimension the page should slice
+(channel, campaign, product). Ship `options` when the values are known and stable;
+leave `options` empty only when a dimension cache will fill them. Every widget's
+query must declare the same param name, or list it in `data.ignores`.
+
 KPIs with `compare: true` (default) get “↑ 12.6% vs prev 30d” for free — the executor re-runs the query on the shifted window. Set `value.direction` to `higher_is_better`, `lower_is_better`, or `neutral`.
 
 ## Chart choice
