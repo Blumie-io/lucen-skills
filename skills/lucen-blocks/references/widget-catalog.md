@@ -34,7 +34,7 @@ multiplier and is never scaled (`6.22` → `6.22x`).
 | `series_labels` | map series value → legend label. Only with `series`; rejected without it |
 | `series_colors` | map series value → `#RRGGBB` |
 | `x_label` / `y_label` | axis title overrides |
-| `emphasis` | only with `chart: "bar"` and no `series` |
+| `emphasis` | only with `chart: "bar"` and no `series`. Unmatched rows recede to the overflow slate (legend "Rest"), not the series accent. Do not use `means: "muted"` as a catch-all; that slot is a declared meaning. |
 | `on_click` | `{ action: "set_param", param, value_from, mode }` |
 | `height` | `sm\|md\|lg\|xl` |
 

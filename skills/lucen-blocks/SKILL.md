@@ -29,7 +29,7 @@ Requires the **Lucen MCP server** (write scope) for `upsert_page`. Pair with **l
 | Prefer | When |
 |---|---|
 | `palette: "lucen"\|"ocean"\|"mono"\|"org"` on page or widget | Default / restyle |
-| `emphasis: [{ when, value, means: "good\|bad\|warning\|muted" }]` | Threshold colouring (ACOS > 100% → bad) |
+| `emphasis: [{ when, value, means: "good\|bad\|warning\|muted" }]` | Threshold colouring (ACOS > 100% → bad). Unmatched rows recede to the overflow slate automatically; do not paint them `muted` unless that is the meaning. |
 | `y[].color` or `series_colors: { "meta": "#0C2AEA" }` | User named an exact hex |
 
 There is **no** `style` / `css` / `className` field. `"red"` is invalid — use `#DC2626` or `means: "bad"`.

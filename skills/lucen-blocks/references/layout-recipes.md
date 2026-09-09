@@ -109,6 +109,10 @@ Cards in the same row stretch to equal height automatically.
 }
 ```
 
+Rules that do not cover every row are fine: unmatched bars recede to the overflow
+slate (legend "Rest"). Do not add a catch-all `means: "muted"` just to colour the
+rest; `muted` is a declared meaning, not the baseline.
+
 ## Creatives page (Meta)
 
 KPI strip → gallery → supporting table, all on one ad-grain query plus one metrics
