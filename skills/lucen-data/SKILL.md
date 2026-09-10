@@ -6,7 +6,7 @@ description: >-
   their business data, metrics, dashboards, SQL over their warehouse, saved
   queries, or gold-layer tables. Requires the Lucen MCP server to be connected
   (read scope to query; write scope to save queries or draft pages).
-skill_version: 2026-09-01
+skill_version: 2026-09-09
 # Keep skill_version in sync with `_LUCEN_DATA_SKILL_VERSION` in
 # platform/src/lucen_platform/ai/mcp/server.py — the MCP `instructions` field
 # reads that constant and tells users to re-install when their local skill
@@ -170,13 +170,40 @@ before concluding, and never call the data unreliable until you have.
   earn. When there is a genuine bug, its specifics belong in a ticket, not
   in the answer to the user.
 
+## Evidence
+
+`run_bigquery`, `run_query`, and `compare_entities` attach `sample` (n and
+date window), `columns` (mean, median, percentiles, outliers), `caveats`,
+and `required_notices`. `required_notices` is the caveats joined into one
+string. If it is not empty, quote it verbatim as the first paragraph of
+the answer, before any ranking or recommendation.
+
+Ask (Lumi) attaches the same profiler notes for n, skew, zeros, and
+outliers as chart blocks. Exact active-life ranking is this skill's
+`compare_entities` tool. Ask does not run that query.
+
+- **Correlation is not causation.** A higher metric next to a format, hour,
+  or campaign does not mean that thing caused the metric.
+- **Compare like with like.** An ad group against other ad groups, a
+  campaign against other campaigns. Do not rank an entity against a total
+  or a different grain.
+- **Every recommendation must cite a number from the result.** Do not invent
+  explanations about creative, audience, or context you cannot see.
+- **State the sample size (n) and the date window in the sentence**, not as
+  a footnote. "31%" is not an answer; "31% on 1,295 orders over 13 months"
+  is.
+- **Use `compare_entities` when ranking entities that may have different
+  active lives.** A ROAS over a fixed window can invert the lifetime
+  ranking. Do not write that GROUP BY yourself.
+
 ## Workflow
 
 1. **Start with `find_query(question)`.** On a hit, run the returned query with
    `run_query`. On a miss, continue below.
 2. **Discover schema with `list_tables`.** If `ready` is false, stop (see
    above). Otherwise write SQL from those columns and test it with
-   `run_bigquery`.
+   `run_bigquery`. To rank campaigns, ad groups, ads, or listings on a
+   ratio, call `compare_entities` instead of a hand-written `GROUP BY`.
 3. When the user approves the SQL you showed them, **save it with `save_query`**.
 4. **Build or update a dashboard with `upsert_page` only if they asked for a
    page**, then send the `preview_url`. They publish in Lucen when ready.
@@ -249,9 +276,21 @@ Constraints (enforced server-side, don't fight them):
   rows; use LIMIT + ORDER BY for top-N questions.
 - **A scan-cost gate rejects expensive queries.** If you hit it, narrow the
   date range, select fewer columns, or filter partitions, then retry.
+- The payload includes `sample`, `columns`, and `caveats`. Report every
+  caveat. Do not summarise past them.
 
 Prefer `list_tables` over INFORMATION_SCHEMA. Saved-query SQL is in
 `list_queries` and `find_query` results.
+
+### compare_entities
+
+Use this when ranking entities that may have lived different lengths of
+time. You pass the catalog `table`, the entity / date / numerator /
+denominator columns, and a `window` (a date_range preset or a custom
+range). The server writes the SQL. The result has `days_active`,
+`metric_window`, `metric_lifetime`, and `denominator_per_active_day`. If
+active lives differ, a caveat says so — do not rank on `metric_window`
+alone.
 
 ### list_pages / get_page / read_pipeline_code
 
