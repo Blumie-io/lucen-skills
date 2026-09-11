@@ -63,18 +63,25 @@ KPIs with `compare: true` (default) get “↑ 12.6% vs prev 30d” for free —
 
 See [references/chart-decision-tree.md](references/chart-decision-tree.md). Pick the widget from the question (KPI vs trend vs ranking vs composition vs table), not from a gallery.
 
-## Creative galleries (Meta)
+## Creative galleries (Meta, MercadoLibre, TiendaNube)
 
-`gallery` draws one card per ad creative: the image, up to 4 footer metrics and a
-status chip. It is the only widget backed by media, and it has one hard requirement
-that is easy to miss.
+`gallery` draws one card per row: the image, up to 4 footer metrics and a status
+chip. It is the only widget backed by media. `media_platform` picks how `media_id`
+is resolved -- `"meta"` (default), `"mercadolibre"`, `"tiendanube"` -- and each has
+its own hard requirement that is easy to miss.
 
-**The query must be at ad grain.** `media_id` names the column holding Meta's
-`creative_id`, and a query aggregated by campaign does not have one — there is no
-creative id at campaign grain, so the widget renders nothing. Group by ad (or by
-creative), not by campaign or ad set, and select the creative id column explicitly.
-`campaign_id`, `adset_id` and `ad_id` are all the wrong column: only the creative id
-resolves to an image.
+**For `media_platform: "meta"`, the query must be at ad grain.** `media_id` names
+the column holding Meta's `creative_id`, and a query aggregated by campaign does not
+have one — there is no creative id at campaign grain, so the widget renders nothing.
+Group by ad (or by creative), not by campaign or ad set, and select the creative id
+column explicitly. `campaign_id`, `adset_id` and `ad_id` are all the wrong column:
+only the creative id resolves to an image.
+
+**For `media_platform: "mercadolibre"` / `"tiendanube"`, the query must be at
+item/product grain**, and `media_id` must select the gold layer's `thumbnail_url`
+column directly — it already holds the final public image URL, not an id.
+
+Meta example:
 
 ```json
 {
@@ -94,19 +101,55 @@ resolves to an image.
 }
 ```
 
+MercadoLibre / TiendaNube example — same shape, one extra field
+(`media_platform`), and no `status_column` because these rows carry no ad status:
+
+```json
+{
+  "type": "gallery",
+  "id": "gal_products",
+  "title": "Productos",
+  "data": { "query": "<query_version_id>" },
+  "media_platform": "mercadolibre",
+  "media_id": "thumbnail_url",
+  "title_column": "item_title",
+  "metrics": [
+    { "column": "units_sold", "format": "number", "direction": "higher_is_better" },
+    { "column": "revenue", "format": "currency_compact", "direction": "higher_is_better" }
+  ],
+  "sort": { "column": "revenue", "order": "desc" },
+  "limit": 24
+}
+```
+
+`"tiendanube"` is identical except `media_platform: "tiendanube"` and a query
+against `gold_tiendanube_product_performance` instead of
+`gold_mercadolibre_items`.
+
 - `sort` and `limit` are applied **by the executor** here, unlike on `bar` / `pie` /
   `table` where they are inert. Do not also rank and cap in SQL. `limit` defaults to 24
-  and is hard-capped at 60; it bounds both the cards drawn and the creative images
-  resolved per render.
-- Images are served **by Lucen from its own bucket**, never by Meta. Meta's creative
-  URLs are signed and expire within days, so the row payload never carries a provider
-  CDN URL — the only thing the query has to supply is the id.
-- Cards are `pending` on the first render of a new gallery and fill in over a short
-  polling cycle as the cache warms. The other states are `ok`, `unsupported` (the
-  creative has no fetchable still, e.g. a dynamic product ad) and `missing` (the fetch
-  was attempted and failed). Grey cards on a first load are expected, not a bug.
-- Requires a live Meta connection on the org. `media_platform` is `"meta"`; no other
-  platform is supported yet.
+  and is hard-capped at 60; it always bounds the cards drawn. For `media_platform:
+  "meta"` it also bounds how many creative ids are resolved and cached per render.
+- For **`media_platform: "meta"`**, images are served **by Lucen from its own bucket**,
+  never by Meta. Meta's creative URLs are signed and expire within days, so the row
+  payload never carries a provider CDN URL — the query supplies the `creative_id` in
+  `media_id`. For **`"mercadolibre"` / `"tiendanube"`**, put the gold layer's final
+  `thumbnail_url` in `media_id`; Lucen never re-hosts those images.
+- For **`"meta"`** only: cards are `pending` on the first render of a new gallery and
+  fill in over a short polling cycle as the cache warms. The other states are `ok`,
+  `unsupported` (no fetchable still) and `missing` (fetch failed). Grey cards on first
+  load are expected, not a bug. **`"mercadolibre"` / `"tiendanube"`** cards are `ok`
+  on the first render — no polling.
+- A live Meta connection is required only when `media_platform` is `"meta"`.
+  `"mercadolibre"` and `"tiendanube"` need no connection because `media_id` already
+  holds the image URL.
+- For **`"mercadolibre"` / `"tiendanube"`**, `media_id` is validated, not trusted as-is:
+  it must be an `https` URL on `*.mlstatic.com` / `*.mitiendanube.com`. Anything else
+  (wrong scheme, wrong host, a malformed value) resolves to `missing` instead of
+  rendering — a query that selects the wrong column into `media_id` fails visibly as a
+  grey/missing card, not by putting an arbitrary string into the page's `<img src>`.
+  See [references/widget-catalog.md](references/widget-catalog.md)
+  (`## gallery`).
 
 ## Widget cheat sheet
 

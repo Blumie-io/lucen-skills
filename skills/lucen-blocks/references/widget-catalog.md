@@ -67,38 +67,41 @@ the saved SQL. See [anti-patterns.md](anti-patterns.md).
 
 ## gallery
 
-One card per ad creative: image, metrics footer, status chip. Today the only
-`media_platform` is `"meta"`, and the org needs a live Meta connection for the images
-to resolve.
+One card per item: image, metrics footer, status chip. `media_platform` chooses how
+`media_id` is interpreted and how the image is resolved.
 
 | Prop | Notes |
 |---|---|
-| `media_id` | **Required.** Column holding the platform creative id (Meta `creative_id`). One card per distinct id |
-| `title_column` | **Required.** Column holding the ad name, shown as the card title |
+| `media_id` | **Required.** For `"meta"`: column holding Meta's `creative_id` (one card per distinct id). For `"mercadolibre"` / `"tiendanube"`: column holding the gold layer's `thumbnail_url` — already a direct, public image URL |
+| `title_column` | **Required.** Ad name when `media_platform` is `"meta"`; product or item name for `"mercadolibre"` / `"tiendanube"` |
 | `metrics` | Up to 4 `ColumnSpec` for the card footer. Four is the readable maximum on one card |
 | `status_column` | Column rendered as the Active/Paused chip. `ACTIVE`/`ENABLED`/`LIVE` render green, anything else grey |
 | `sort` | `{ column, order }`. **Applied by the executor.** Omitted = the order the query returned |
-| `limit` | Cards rendered AND creative ids resolved. Default `24`, hard cap `60`. **Applied by the executor** |
-| `media_platform` | `"meta"` (only value today) |
+| `limit` | Cards rendered per render. For `"meta"` it also bounds how many creative ids are resolved against the cache. Default `24`, hard cap `60`. **Applied by the executor** |
+| `media_platform` | `"meta"` (default), `"mercadolibre"`, or `"tiendanube"` |
 | `on_click` | `{ action: "set_param", param, value_from: "column", column, mode }`. A card has no category axis and no series, so `value_from: "category"` / `"series"` resolve to nothing and the click is a silent no-op — always use `"column"` here |
 
-The query must be at **ad grain**, so every row carries a creative id — a
-campaign-grain query has no `creative_id` and the widget has nothing to show. See
-[SKILL.md](../SKILL.md).
+**`media_platform: "meta"`** — Query at **ad grain** so every row carries a creative id.
+The org needs a live Meta connection. Images are served by Lucen from its own bucket,
+never by Meta's CDN: creative URLs are signed and expire within days, so the row
+payload never carries a provider URL. The executor resolves each id against Lucen's
+`CreativeAsset` cache and returns a side map keyed by widget id.
 
-Images are served by Lucen from its own bucket, never by Meta: Meta's creative URLs
-are signed and expire within days, so the row payload deliberately never carries a
-provider CDN URL. The executor resolves each id against Lucen's cache and returns a
-side map keyed by widget id.
+**`media_platform: "mercadolibre"` / `"tiendanube"`** — Query at **item or product
+grain**. Select the gold layer's `thumbnail_url` into `media_id` (`http2.mlstatic.com`
+or `acdn-us.mitiendanube.com`). No Meta connection, no cache, no GCS: the executor
+validates the URL (`https` + host on the platform's own CDN) and passes it through
+unchanged on the first render if it passes; there is no polling and no retry either
+way, so the card is `ok` or `missing` immediately.
 
 Card image states:
 
 | State | Means |
 |---|---|
-| `ok` | Cached image, rendered |
-| `pending` | Not cached yet. The first render of a new gallery schedules the fetch and the portal polls (every 4s, up to 10 times) until the cards fill in |
-| `unsupported` | The creative has no fetchable still (dynamic product ads, template creatives) |
-| `missing` | Fetch was attempted and failed (Graph error, download error, too large, bad content type) |
+| `ok` | `"meta"`: cached image, rendered. `"mercadolibre"` / `"tiendanube"`: the row's own URL passed the host check and is rendered directly |
+| `pending` | `"meta"` only. Not cached yet. The first render of a new gallery schedules the fetch and the portal polls (every 4s, up to 10 times) until the cards fill in. `"mercadolibre"` / `"tiendanube"` never reach this state |
+| `unsupported` | `"meta"` only. The creative has no fetchable still (dynamic product ads, template creatives) |
+| `missing` | `"meta"`: fetch was attempted and failed (Graph error, download error, too large, bad content type). `"mercadolibre"` / `"tiendanube"`: `media_id` was not an `https` URL on the platform's own CDN — usually the query selected the wrong column |
 
 Rows past `limit` are not drawn as cards at all, but they stay in the shared result
 payload — a `table` reading the same `query_version_id` still sees every row.
