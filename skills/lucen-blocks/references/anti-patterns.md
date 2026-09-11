@@ -17,6 +17,8 @@
 | Force `orientation: "horizontal"` only because labels are long | Horizontal is a ranking/readability choice, not a layout workaround |
 | Assume `palette: "categorical"` still exists | Use `lucen` / `ocean` / `mono` / `org` |
 | Promise you published the page | Send `preview_url`; human clicks Publish |
+| Rewrite the whole PageSpec to move one widget or change a span | `get_page` then `upsert_page(slug, patch=[{op, id, ...}])`. A full rewrite can drop unrelated widgets |
+| Send a full spec with new spans while `apply_layout_prefs` stays true | `patch` a `set` on span/height, or pass `apply_layout_prefs=false` if the user asked to redo the layout. Stored portal resizes otherwise overwrite the spans you wrote |
 
 ## `sort` and `limit` are not the same field twice
 

@@ -12,9 +12,17 @@ Requires the **Lucen MCP server** (write scope) for `upsert_page`. Pair with **l
 ## Authoring loop
 
 1. `find_query(question)` — HIT → reuse `query_version_id`; MISS → `list_tables` → SQL → `run_bigquery` → user approves → `save_query`
-2. Compose a PageSpec (`title`, `params`, `body`)
-3. `upsert_page(spec, slug?)` → send the user `preview_url`
+2. **Create:** compose a PageSpec (`title`, `params`, `body`) and `upsert_page(spec)` → send the user `preview_url`
+3. **Edit:** `get_page(slug)` then `upsert_page(slug, patch=[...])`. Never resend the full body for a small change
 4. Iterate on the draft; never claim you published
+
+`upsert_page` takes exactly one of `spec` or `patch`. `patch` requires `slug`. Ops are keyed by node `id`: `set` (title/subtitle/span/height), `remove`, `move`, `insert`, `replace`, `set_page`. A patch copies the rest of the tree, so an unrelated widget cannot disappear.
+
+A later full `spec` write reapplies stored span/height (`layout_prefs`) onto surviving node ids. Prefs for ids that are not in the spec you just wrote are dropped, so a deleted widget cannot haunt a later reincarnation of the same id.
+
+Pass `apply_layout_prefs=false` when the user asked to redo the layout from scratch, **or** when a full spec includes explicit span/height the user just asked for ("make this KPI full width"). Otherwise a previous portal resize silently overwrites the spans you wrote.
+
+To change one widget's width or height, always `patch` a `set`. That updates `layout_prefs`. Do not send a full spec just to change a span.
 
 ## Hard rules
 
@@ -23,6 +31,7 @@ Requires the **Lucen MCP server** (write scope) for `upsert_page`. Pair with **l
 - Every page `params` control must reach every widget (query declares the param) or the widget lists it in `data.ignores`
 - Heights are tokens: `sm|md|lg|xl`. Widths are `span` 1–12
 - Prefer named palettes; use `#RRGGBB` only when the user asks for a specific colour
+- **Do not rewrite the PageSpec to change a span, move a widget, retitle, or delete.** Use `patch`.
 
 ## Colour policy
 

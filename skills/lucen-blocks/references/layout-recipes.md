@@ -2,6 +2,9 @@
 
 Spans are twelfths: `3` = quarter, `4` = third, `6` = half, `12` = full.
 
+To change a span, move a widget, or delete one on an existing page, use
+`upsert_page(slug, patch=[...])`. Do not resend these recipes as a full spec rewrite.
+
 ## KPI strip (4-up)
 
 ```json
