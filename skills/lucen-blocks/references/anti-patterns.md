@@ -19,6 +19,7 @@
 | Promise you published the page | Send `preview_url`; human clicks Publish |
 | Rewrite the whole PageSpec to move one widget or change a span | `get_page` then `upsert_page(slug, patch=[{op, id, ...}])`. A full rewrite can drop unrelated widgets |
 | Send a full spec with new spans while `apply_layout_prefs` stays true | `patch` a `set` on span/height, or pass `apply_layout_prefs=false` if the user asked to redo the layout. Stored portal resizes otherwise overwrite the spans you wrote |
+| `format: "number"` on a text or date column. It is accepted and does nothing useful | Use `text`, `date`, or omit `format` so the renderer infers |
 
 ## `sort` and `limit` are not the same field twice
 
@@ -29,11 +30,11 @@ neither failure raises an error.
 | Widget | Who applies `sort` / `limit` |
 |---|---|
 | `gallery` | **The executor.** It emits `media[<widget_id>].order` already sorted and already capped, and the renderer draws one card per entry — no sorting, no slicing of its own |
-| `bar`, `pie`, `table` | **Nobody, yet.** The fields are declared in the DSL and no layer reads them |
+| `bar`, `pie`, `table` | **The executor.** It emits `widgets[<id>].order` (sorted, then capped). Shared result rows stay intact so another widget on the same query still sees every row. The renderer draws only those indices; `table` then paginates |
 
 | Don't | Do instead |
 |---|---|
-| Trust `sort` / `limit` on a `bar`, `pie` or `table` to rank or cap what renders | `ORDER BY` + `LIMIT` in the saved query. The widget fields are inert |
+| Trust SQL `ORDER BY` alone on a `bar` / `pie` / `table` and omit `sort` / `limit` | Set `sort` + `limit` on the widget when you want a ranked cap. SQL `LIMIT` is still right for huge scans |
 | Rank and `LIMIT` a `gallery`'s query in SQL and leave `limit` off the widget | Set `sort` + `limit` on the widget. `limit` always bounds the cards drawn (default 24, hard cap 60); for `media_platform: "meta"` it also bounds how many creative images get resolved and cached per render |
 | Push a `gallery` past 60 cards | The schema refuses it. Narrow the query or add a filter param |
 

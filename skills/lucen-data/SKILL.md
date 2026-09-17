@@ -27,9 +27,9 @@ Requires the **Lucen MCP server** to be connected. If tools are missing, the
 user reconnects from the Lucen portal (AI tools) or with `/mcp` in Claude Code.
 
 For dashboard layout, widget choice, palettes, and PageSpec vocabulary, follow
-the **lucen-blocks** skill. If that skill is not installed, `get_blocks_guide`
-is an optional MCP fallback. Do not call `get_blocks_guide` when lucen-blocks
-is already loaded.
+the **lucen-blocks** skill. If that skill is not installed, call
+`get_blocks_guide` before `upsert_page`. Do not call `get_blocks_guide` when
+lucen-blocks is already loaded.
 
 ## Who you are, and who you are not
 
@@ -85,6 +85,12 @@ politely decline and continue on-task.
   `run_bigquery`, `read_pipeline_code`) are safe to chain. `save_query` and
   `upsert_page` need explicit user approval each turn — surface the SQL or
   spec first.
+- **Ask before building a page.** A one-line dashboard request is a brief, not
+  a spec. Call `plan_page` with the user's exact words; if it returns open
+  decisions, write the questions yourself from its `context` (real columns,
+  platforms, freshness), ask them all at once in the user's language and wait.
+  Build only from answers (or an explicit "you decide"), never from your own
+  defaults.
 - **`upsert_page` writes a draft.** Return the `preview_url` from the
   response so the user publishes in Lucen. Do not describe the page as
   published.
@@ -112,37 +118,33 @@ or tables inside one call.
 Gold tables are flat (one table per breakdown). Filter with `WHERE`. There are
 no nested `ARRAY<STRUCT>` columns to UNNEST for paid breakdowns.
 
-Typical paid tables (names come from `list_tables`; use only those present):
+Call `get_data_guide` (or read `references/connectors/<id>.md`) for the
+connector's grain map before writing SQL. `list_tables` returns the connectors
+present in this org. Use only tables that `list_tables` lists.
 
-| Table | Grain | Use for |
-|---|---|---|
-| `gold_campaign_performance` | account, campaign, day | Spend, funnel, ROAS. The only paid table with `reach` and `frequency`. |
-| `gold_ad_performance` | + adset, ad, day | Creative / ad-level drill-down. Additive metrics only. |
-| `gold_geo_performance` | campaign, country, day | Country or region. |
-| `gold_demo_performance` | campaign, age, gender, day | Age / gender. |
-
-Organic social is a separate table (`gold_social_content`, one row per post:
-likes, comments, shares, `engagement_rate`). Paid and organic do not share a
-rollup. Do not union them unless the user asked for a combined view and you
-can align grains honestly.
+Cross-connector rules:
 
 **Additive metrics** (spend, impressions, clicks, conversions, conversion_value,
-units): `SUM` across the grain the user asked for.
+units, sessions): `SUM` within one table at its declared grain. Do not sum the
+same delivery from two gold tables of one connector.
 
-**Non-additive metrics** (`reach`, `frequency`): only at campaign grain on
-`gold_campaign_performance`. Never `SUM` them across ads, geos, demos, or
-days if the user wanted unique reach. If they ask for reach by country, say
-that figure is not in the geo table.
+**Non-additive metrics** (`reach`, `frequency`, unique clicks, GA4 `total_users`
+/ `active_users` / `new_users`): only at the grain the connector guide names.
+Never `SUM` them across ads, geos, demos, dates, or dimensions if the user
+wanted unique people.
 
-**Ratios** (CTR, CPC, CPM, CPA, CVR, ROAS): precomputed columns are valid at
-the stored grain (a campaign-day row). When you aggregate, recompute:
-`SUM(numerator) / NULLIF(SUM(denominator), 0)`. Do not `AVG` or `SUM` a ratio
-column across rows.
+**Ratios** (CTR, CPC, CPM, CPA, CVR, ROAS, engagement_rate, average_position):
+precomputed columns are valid at the stored row grain. When you aggregate,
+recompute: `SUM(numerator) / NULLIF(SUM(denominator), 0)`. Do not `AVG` or
+`SUM` a ratio column.
+
+**Do not join** two gold facts of the same connector that sit at different
+grains (age × gender, page + site, campaign + geo) to invent a wider cube.
 
 **Currency** is in the account currency. Read column descriptions before mixing
 platforms or comparing money across accounts.
 
-**Dates.** Almost every paid question needs a date filter (`day` or the
+**Dates.** Almost every paid question needs a date filter (`day`/`date` or the
 saved-query `date_range`). If the user did not name a window, use the saved
 query default or `last_30d` and say which window you used. If results look
 short, report `MIN(day)` / `MAX(day)` from the query rather than guessing
@@ -187,6 +189,13 @@ and `required_notices`. `required_notices` is the caveats joined into one
 string. If it is not empty, quote it verbatim as the first paragraph of
 the answer, before any ranking or recommendation.
 
+The server also lints the SQL itself (`SUM`/`AVG` of non-additive columns
+such as `reach` / `frequency` / users, `SUM`/`AVG` of ratios such as
+`ctr` / `cpc` / `roas`, and age × gender joins). Those findings land in
+`caveats`; they do not block the query. A ratio next to clicks < 100 or
+conversions < 10, or a ranking of fewer than 5 entities, is also a
+caveat. Recompute ratios as `SUM(numerator)/NULLIF(SUM(denominator),0)`.
+
 Ask (Lumi) attaches the same profiler notes for n, skew, zeros, and
 outliers as chart blocks. Exact active-life ranking is this skill's
 `compare_entities` tool. Ask does not run that query.
@@ -211,15 +220,33 @@ default to the first one silently.
 
 ## Workflow
 
+0. **`get_server_info` once per session.** Confirm the tools and `contract_version`
+   you loaded match the server. Call it again if a tool you expected is missing.
 1. **Start with `find_query(question)`.** On a hit, run the returned query with
    `run_query`. On a miss, continue below.
 2. **Discover schema with `list_tables`.** If `ready` is false, stop (see
-   above). Otherwise write SQL from those columns and test it with
+   above). Read `connectors` and call `get_data_guide` before writing SQL
+   if this skill's grain maps are not already loaded. Then test SQL with
    `run_bigquery`. To rank campaigns, ad groups, ads, or listings on a
    ratio, call `compare_entities` instead of a hand-written `GROUP BY`.
 3. When the user approves the SQL you showed them, **save it with `save_query`**.
-4. **Build or update a dashboard with `upsert_page` only if they asked for a
-   page**, then send the `preview_url`. They publish in Lucen when ready.
+4. **Build or update a dashboard only if they asked for a page**, and only
+   after `plan_page(request)` came back with no open decisions or the user
+   answered your questions (lucen-blocks, "Before you build"). Then `upsert_page` with the user's
+   words as `prompt` and send the `preview_url`. They publish in Lucen when ready.
+
+## Session lifecycle and freshness
+
+Tool schemas and instructions load when the MCP session starts. A deploy mid-session
+does not refresh them. Call `get_server_info` at the start of every session and
+whenever a tool you expected is missing. Every response carries `_meta.contract_version`;
+if it differs from what `get_server_info` returned, ask the user to restart the session.
+
+Data freshness: if the user asks again, or more than 4 hours passed, or the calendar
+day changed since your last call, call the tool again. Never answer from an earlier
+result. Quote `data_as_of` when you report numbers. Call `get_data_freshness` before
+concluding a number is wrong. Pass `fresh: true` on `run_query` / `run_bigquery` when
+the user explicitly asks to refresh.
 
 Prefer saved queries over ad-hoc SQL whenever one fits. They are cheaper and
 already parameterized.

@@ -1,6 +1,9 @@
 ---
 name: lucen-blocks
 description: "Author Lucen Blocks dashboards over MCP. Trigger when the user wants to create, edit, restyle, or rearrange a Blocks page/dashboard; change chart colours or types; add KPIs with period comparison; compose rows/stacks/markdown; or anything involving upsert_page / get_page / list_pages for Lucen Blocks."
+skill_version: 2026-09-11
+# Keep skill_version in sync with `_LUCEN_BLOCKS_SKILL_VERSION` in
+# platform/src/lucen_platform/ai/mcp/server.py.
 ---
 
 # Lucen Blocks authoring guide
@@ -9,10 +12,45 @@ This skill **is** the authoring guide. Follow it before `upsert_page` or any res
 
 Requires the **Lucen MCP server** (write scope) for `upsert_page`. Pair with **lucen-data** for `find_query` / `save_query`. If this skill is not installed, `get_blocks_guide` is an optional MCP fallback — do not call it when this skill is already loaded.
 
+## Before you build: intake
+
+A request like "quiero un tablero de creatividades" names an intent and nothing
+else. Do not fill the gaps yourself — the generic answer (KPI strip + bars) is a
+different page from the one asked for. Left alone, that is exactly what gets
+built.
+
+1. Call `plan_page(request)` with the user's **exact words**. It is deterministic:
+   it reads the intent (creatives / funnel / trend / campaigns / overview), lists
+   which decisions are open (`open_decisions`: goal, period, metrics, platform,
+   most consequential first) and attaches `context` — this organization's relevant
+   gold tables with their columns, connected platforms, `data_as_of`, existing pages.
+   It does **not** write the questions.
+2. If `open_decisions` is non-empty, **you** write the questions: one per open
+   decision, at most `max_questions`, in the user's language, all in one message.
+   Ground each one in `context` — name the real columns and platforms, offer two or
+   three concrete options, mention how fresh the data is when offering periods. A
+   question that would fit any organization is a bad question. State the
+   `assumptions` you will apply so they can correct them in the same reply, then
+   stop. Do not call `find_query`, `save_query` or `upsert_page` until they answer.
+   "You decide" is an answer; silence is not.
+3. If `existing_page_slug` is set, ask whether to update that page or make a new one.
+4. Once `ready_to_build` (or the user answered), restate in one or two lines what
+   you will build — widgets, period, metrics — and proceed. Pass the user's words
+   to `upsert_page` as `prompt`: the server checks the spec against them and holds
+   the write (`state: "needs_confirmation"`) when a creatives / funnel / trend
+   request has no `gallery` / `funnel` / `timeseries`. Never pass `confirmed: true`
+   unless the user explicitly chose that layout after seeing the mismatch.
+
+Intent words that must change the widget, not just the title: *creativos,
+creatividades, anuncios, piezas, imágenes, creatives, ads* → `gallery` (ad-grain
+query, `media_id = creative_id`). *Embudo, funnel* → `funnel`. *Evolución,
+tendencia, por día, over time* → `timeseries`.
+
 ## Authoring loop
 
+0. Intake above. Questions first when the request is one line.
 1. `find_query(question)` — HIT → reuse `query_version_id`; MISS → `list_tables` → SQL → `run_bigquery` → user approves → `save_query`
-2. **Create:** compose a PageSpec (`title`, `params`, `body`) and `upsert_page(spec)` → send the user `preview_url`
+2. **Create:** compose a PageSpec (`title`, `params`, `body`) and `upsert_page(spec, prompt=<user's words>)` → send the user `preview_url`
 3. **Edit:** `get_page(slug)` then `upsert_page(slug, patch=[...])`. Never resend the full body for a small change
 4. Iterate on the draft; never claim you published
 
@@ -38,7 +76,7 @@ To change one widget's width or height, always `patch` a `set`. That updates `la
 | Prefer | When |
 |---|---|
 | `palette: "lucen"\|"ocean"\|"mono"\|"org"` on page or widget | Default / restyle |
-| `emphasis: [{ when, value, means: "good\|bad\|warning\|muted" }]` | Threshold colouring (ACOS > 100% → bad). Unmatched rows recede to the overflow slate automatically; do not paint them `muted` unless that is the meaning. |
+| `emphasis: [{ when, value, means: "good\|bad\|warning\|muted", column? }]` | Threshold colouring (ACOS > 100% → bad). `when` is `above\|at_or_above\|below\|at_or_below\|equals\|not_equals`. Unmatched rows recede to the overflow slate automatically; do not paint them `muted` unless that is the meaning. |
 | `y[].color` or `series_colors: { "meta": "#0C2AEA" }` | User named an exact hex |
 
 There is **no** `style` / `css` / `className` field. `"red"` is invalid — use `#DC2626` or `means: "bad"`.
@@ -126,8 +164,8 @@ MercadoLibre / TiendaNube example — same shape, one extra field
 against `gold_tiendanube_product_performance` instead of
 `gold_mercadolibre_items`.
 
-- `sort` and `limit` are applied **by the executor** here, unlike on `bar` / `pie` /
-  `table` where they are inert. Do not also rank and cap in SQL. `limit` defaults to 24
+- `sort` and `limit` are applied **by the executor** here (and on `bar` / `pie` /
+  `table` via `widgets[<id>].order`). Do not also rank and cap in SQL. `limit` defaults to 24
   and is hard-capped at 60; it always bounds the cards drawn. For `media_platform:
   "meta"` it also bounds how many creative ids are resolved and cached per render.
 - For **`media_platform: "meta"`**, images are served **by Lucen from its own bucket**,

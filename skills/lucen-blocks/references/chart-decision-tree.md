@@ -57,8 +57,12 @@ What is the user trying to see?
 
 ## Default page shape
 
-When the user asks for "a dashboard" / "an overview" and does not specify
-layout, compose this and stop:
+This shape is for a request that is **really** generic — the user asked for "an
+overview" and, when you asked about `plan_page`'s open decisions, said "you decide" or
+confirmed KPIs + trend + breakdown. It is never the answer to a one-line request
+that names a subject: "tablero de creatividades" is a creatives page (`gallery`),
+"embudo" is a `funnel`, "evolución" is a `timeseries`. Ask first (see SKILL.md
+"Before you build"); then, for a confirmed generic overview, compose this and stop:
 
 1. KPI strip (row of 3–4 `kpi`, `span` 4 or 3)
 2. One primary `timeseries` (`chart: "area"` or `"line"`, `height: "md"`)
@@ -75,7 +79,7 @@ See [layout-recipes.md](layout-recipes.md) for the JSON.
 | Time on X | `bar` as the first choice | `timeseries` |
 | "Show me the creatives" | `table` of ad names | `gallery` (ad-grain for meta; item/product-grain for mercadolibre/tiendanube) |
 | Ranking a long list of names | `pie` | `bar` (horizontal is easier to scan; vertical is fine — never truncate names in SQL) |
-| >8 categories as a share | `pie` | `bar` (limit 8–15) or `table` |
+| >8 categories as a share | `pie` | `bar` (`limit` 8–15, applied by the executor) or `table` |
 | vs previous period | extra SQL | page `comparison` + KPI `compare: true` |
 | Cost / CPA / ACOS KPI | default `direction` | `lower_is_better` |
 | Threshold colouring (ACOS > 100%) | hex `"red"` | `emphasis` + `means: "bad"` |

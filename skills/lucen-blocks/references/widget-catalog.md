@@ -1,10 +1,48 @@
 # Widget catalog
 
 Every data widget needs `data: { query: "<query_version_id>", bind?, ignores? }`.
+Precedence of param values is `page` control < widget `bind` < share `locked_params`.
 
-Every node also takes `id` (unique in the page) and `span` (1–12, only meaningful
-inside a `row`). Every *widget* additionally takes `title`, `subtitle` (one line
-carrying the insight, not a second title) and `height` (`sm|md|lg|xl`).
+Every node also takes `id` (unique in the page) and `span` (1–12, default `12`,
+only meaningful inside a `row`). Every *widget* (not `divider`, `row`, or `stack`)
+additionally takes `title`, `subtitle` (one line carrying the insight, not a
+second title) and `height` (`sm|md|lg|xl`, default `md`).
+
+# Page
+
+`PageSpec` fields (the document `upsert_page` writes):
+
+| Field | Notes |
+|---|---|
+| `title` | Page H1 |
+| `icon` | Optional emoji or icon token for the page tree |
+| `description` | Optional one-line summary |
+| `palette` | Default chart palette (`lucen\|ocean\|mono\|org`, default `lucen`) |
+| `params` | Header filter bar. See [Page params](#page-params) |
+| `body` | Flow tree of nodes |
+
+`spec_version` is always `1` and authors can omit it.
+
+### Shared shapes
+
+`ColumnSpec`: `column`, optional `label`, `format` (default `number`), `decimals`
+(0–6), `direction` (default `neutral`: `higher_is_better\|lower_is_better\|neutral`),
+optional `color` (`#RRGGBB`), optional `agg` (`sum\|avg\|none`). There is no
+`weighted` agg: a parent ROAS is `SUM(revenue)/SUM(spend)` from SQL, not an
+average of ratios.
+
+`SortSpec`: `{ column, order }` where `order` is `asc` or `desc` (default `desc`).
+Used by `bar`, `table`, and `gallery`.
+
+`EmphasisRule`: `{ when, value, means, column? }`. `when` is
+`above|at_or_above|below|at_or_below|equals|not_equals`. Ordering operators need
+a numeric `value`. `column` defaults to the plotted value column. `means` is
+`good|bad|warning|muted`. Max 4 rules; first match wins.
+
+`SetParamAction` (`on_click`): `{ action: "set_param", param, value_from, mode, column? }`.
+`value_from` is `category|series|column` (default `category`). `mode` is
+`replace|toggle` (default `toggle`). `column` is required when `value_from` is
+`column`, and forbidden otherwise. `toggle` is only valid against a `multi_select`.
 
 ## kpi
 
@@ -16,9 +54,10 @@ Single number + optional period delta.
 | `compare` | default `true` — needs page `comparison` param |
 | `title` | Shown as uppercase label |
 
-Formats: `number|integer|compact|currency|currency_compact|percent|ratio|duration_sec`.  
+Formats: `number|integer|compact|currency|currency_compact|percent|ratio|duration_sec|date|datetime|relative_time|text`.
 `percent` is a fraction in `[0,1]` (BigQuery `SAFE_DIVIDE`). `ratio` is a bare
-multiplier and is never scaled (`6.22` → `6.22x`).
+multiplier and is never scaled (`6.22` → `6.22x`). Date formats respect the org
+locale; `text` is for dimensions.
 
 ## timeseries
 
@@ -30,30 +69,37 @@ multiplier and is never scaled (`6.22` → `6.22x`).
 | `chart` | `area` (default single-series), `line`, `bar` |
 | `stacked` | default `false` — only meaningful with `series` |
 | `legend` | default `false` |
-| `palette` | `lucen\|ocean\|mono\|org` |
+| `palette` | `lucen\|ocean\|mono\|org` (default `lucen`) |
 | `series_labels` | map series value → legend label. Only with `series`; rejected without it |
 | `series_colors` | map series value → `#RRGGBB` |
 | `x_label` / `y_label` | axis title overrides |
-| `emphasis` | only with `chart: "bar"` and no `series`. Unmatched rows recede to the overflow slate (legend "Rest"), not the series accent. Do not use `means: "muted"` as a catch-all; that slot is a declared meaning. |
-| `on_click` | `{ action: "set_param", param, value_from, mode }` |
+| `emphasis` | only with `chart: "bar"` and no `series`. `when` includes `equals` / `not_equals`. Unmatched rows recede to the overflow slate (legend "Rest"), not the series accent. Do not use `means: "muted"` as a catch-all; that slot is a declared meaning. Max 4, first match wins |
+| `on_click` | `{ action: "set_param", param, value_from, mode, column? }` |
 | `height` | `sm\|md\|lg\|xl` |
 
 ## bar
 
-Same props as `timeseries` minus `chart`; plus `orientation: "vertical"|"horizontal"`,
-`sort` and `limit`. Horizontal is easier to scan for a ranked list of names; vertical
-is fine for a handful of categories. Do not shorten labels in SQL — the renderer
-ellipsis-truncates ticks and shows the full text on hover.
+Same props as `timeseries` minus `chart`: `x` (category column), `y` (list of
+`ColumnSpec`). Plus `orientation: "vertical"|"horizontal"`
+(default `vertical`), `sort` (`SortSpec`) and `limit` (`ge=1`). Horizontal is
+easier to scan for a ranked list of names; vertical is fine for a handful of
+categories. Do not shorten labels in SQL — the renderer ellipsis-truncates ticks
+and shows the full text on hover.
 
-`sort` and `limit` here are declared but **not applied by anything** — order and cap in
-the saved SQL. See [anti-patterns.md](anti-patterns.md).
+`sort` and `limit` are applied by the executor (same helper as `gallery`): it
+emits `widgets[<id>].order` as sorted, capped row indices. Shared result rows
+are not mutated, so a `table` on the same query still sees every row. `limit`
+is `ge=1`. Also takes `legend`, `palette`, `series`, `stacked`, `series_labels`,
+`series_colors`, `x_label`, `y_label`, `emphasis`, `on_click`.
 
 ## pie
 
-`category`, `value` (ColumnSpec), optional `donut`, `legend`, `limit`, `palette`,
-`series_colors` (category value → `#RRGGBB`), `on_click`.
+`category`, `value` (ColumnSpec), optional `donut` (default `false`), `legend`
+(default `false`), `limit` (`ge=1`), `palette`, `series_colors` (category value
+→ `#RRGGBB`), `on_click`.
 
-`limit` is declared but not applied — `LIMIT` in the saved SQL.
+`limit` is applied by the executor (`widgets[<id>].order`). A pie has no `sort`,
+`x_label`, `y_label`, `series`, `stacked`, `emphasis`, or `series_labels`.
 
 ## funnel
 
@@ -61,9 +107,20 @@ the saved SQL. See [anti-patterns.md](anti-patterns.md).
 
 ## table
 
-`columns` (order + format + `agg` when `group_by`), `sort`, `limit`, `group_by`, `badge_column`, `on_click`.
+`columns` (order + format + `agg` when `group_by`; empty `columns: []` means every
+column as returned), `sort` (`SortSpec`), `limit` (`ge=1`), `group_by`,
+`badge_column`, `on_click`.
 
-`sort` and `limit` are declared but not applied — order and cap in the saved SQL.
+When `group_by` is set, `columns` cannot be empty and **every** column except the
+group key needs `agg` (`sum|avg|none`). `format` cannot decide this: spend and
+CPA are both currency.
+
+Formats: `number|integer|compact|currency|currency_compact|percent|ratio|duration_sec|date|datetime|relative_time|text`.
+Omit `format` on DATE/TIMESTAMP/STRING columns: the renderer infers `date`/`datetime`/`text`. Never put `number` on a dimension.
+
+`sort` and `limit` are applied by the executor (`widgets[<id>].order`) and the
+renderer still paginates the already-capped list. Prefer SQL `ORDER BY`/`LIMIT`
+for large result sets.
 
 ## gallery
 
@@ -76,7 +133,7 @@ One card per item: image, metrics footer, status chip. `media_platform` chooses 
 | `title_column` | **Required.** Ad name when `media_platform` is `"meta"`; product or item name for `"mercadolibre"` / `"tiendanube"` |
 | `metrics` | Up to 4 `ColumnSpec` for the card footer. Four is the readable maximum on one card |
 | `status_column` | Column rendered as the Active/Paused chip. `ACTIVE`/`ENABLED`/`LIVE` render green, anything else grey |
-| `sort` | `{ column, order }`. **Applied by the executor.** Omitted = the order the query returned |
+| `sort` | `{ column, order }` (`asc` or `desc`, default `desc`). **Applied by the executor.** Omitted = the order the query returned |
 | `limit` | Cards rendered per render. For `"meta"` it also bounds how many creative ids are resolved against the cache. Default `24`, hard cap `60`. **Applied by the executor** |
 | `media_platform` | `"meta"` (default), `"mercadolibre"`, or `"tiendanube"` |
 | `on_click` | `{ action: "set_param", param, value_from: "column", column, mode }`. A card has no category axis and no series, so `value_from: "category"` / `"series"` resolve to nothing and the click is a silent no-op — always use `"column"` here |
@@ -108,11 +165,13 @@ payload — a `table` reading the same `query_version_id` still sees every row.
 
 ## markdown
 
-`content` — GFM + HTML allowlist. Optional `title` → section chrome.
+`content` — GFM + HTML allowlist. Optional `title` → section chrome. Also inherits
+`subtitle` and `height` from every widget, unused by the markdown renderer.
 
 ## divider
 
-Hairline rule. No data.
+Hairline rule. No data. A `_Node`, not a `_Widget`: only `id`, `span`, and `type`.
+No `title`, `subtitle`, or `height`.
 
 ## row
 
@@ -120,7 +179,7 @@ Hairline rule. No data.
 
 ## stack
 
-Vertical list of children. Children may be widgets or `row` — **not** another `stack`. Use for “plot | (prose + KPI row)” compositions.
+Vertical list of `children`. Children may be widgets or `row` — **not** another `stack`. Use for “plot | (prose + KPI row)” compositions.
 
 ---
 
@@ -130,21 +189,25 @@ Page `params` are the header filter bar. Every one of them must reach every widg
 (the widget's query declares the param, or the widget lists it in `data.ignores`) or
 `upsert_page` refuses the write.
 
-All four take `label` and `visible`. `visible: false` keeps the param in the page's
+All four take `label` and `visible` (default `true`). `visible: false` keeps the param in the page's
 param surface — bindable by a widget, lockable by a share link — without rendering a
 header control.
 
 ## date_range
 
-`default` (a `DatePreset`: `today|yesterday|this_week|this_month|last_7d|last_30d|last_90d|last_12m|last_month|this_year`),
-`presets`, `allow_custom`, `max_span_days`.
+`default` (a `DatePreset`: `today|yesterday|this_week|this_month|last_7d|last_30d|last_90d|last_12m|last_month|this_year`,
+default `last_30d`),
+`presets` (the control's list; default is `last_7d`, `last_30d`, `last_90d`,
+`last_12m`, `today`, `yesterday`, `this_month`, `last_month`, `this_year` —
+`this_week` is a valid preset but is **not** in that default list),
+`allow_custom` (default `true`), `max_span_days` (`ge=1`).
 
 `name` is frozen to `"date_range"`. Maps to the SQL `@start_date` / `@end_date` pair,
 so the query is matched on its date-range control, not on the param name.
 
 ## comparison
 
-`default`: `none|previous_period|previous_year`. `name` is frozen to `"comparison"`.
+`default`: `none|previous_period|previous_year` (default `previous_period`). `name` is frozen to `"comparison"`.
 
 The executor implements it by re-running the query on the shifted window, so it is the
 one param a query does not have to declare. This is what feeds KPI `compare: true`.
