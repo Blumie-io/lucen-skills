@@ -35,7 +35,9 @@ neither failure raises an error.
 | Don't | Do instead |
 |---|---|
 | Trust SQL `ORDER BY` alone on a `bar` / `pie` / `table` and omit `sort` / `limit` | Set `sort` + `limit` on the widget when you want a ranked cap. SQL `LIMIT` is still right for huge scans |
-| Rank and `LIMIT` a `gallery`'s query in SQL and leave `limit` off the widget | Set `sort` + `limit` on the widget. `limit` always bounds the cards drawn (default 24, hard cap 60); for `media_platform: "meta"` it also bounds how many creative images get resolved and cached per render |
+| Rank and `LIMIT` a `gallery`'s query in SQL and leave `limit` off the widget | Set `sort` + `limit` on the widget. `limit` always bounds the cards drawn AND the number of media refs resolved, for every `media_platform` — caching only happens for `"meta"`; `"mercadolibre"` / `"tiendanube"` resolution is a cheap host/scheme check with no cache, but the same `limit` still caps how many of them get checked per render |
+| Omit `limit` on a `table` with `type: "image"` and expect only the visible page to be resolved | Client pagination only skips `<img>` tags. The executor resolves every row in `widgets[<id>].order`. With `media_platform: "meta"` the schema now refuses the widget outright until `limit` is set to 60 or less — the same cap `gallery` carries, because the same INSERT + Graph API fetch is behind each ref. For `mercadolibre` / `tiendanube` it stays a judgement call (resolution is a scheme+host check), but `sort` + `limit` is still the right shape for a ranked table |
+| Put `type: "image"`/`type: "link"` on a column of a `group_by` table without an `agg` | Every column of a grouped `table` still needs an explicit `agg` (or `agg: "none"`) — `_rates_declare_their_rollup` in `schemas.py` does not exempt image/link columns. Skipping it fails with a rollup error ("needs an explicit `agg`"), not an image-specific one, which reads as a confusing error if you don't know this rule already applies |
 | Push a `gallery` past 60 cards | The schema refuses it. Narrow the query or add a filter param |
 
 ## Gallery

@@ -109,7 +109,7 @@ is `ge=1`. Also takes `legend`, `palette`, `series`, `stacked`, `series_labels`,
 
 `columns` (order + format + `agg` when `group_by`; empty `columns: []` means every
 column as returned), `sort` (`SortSpec`), `limit` (`ge=1`), `group_by`,
-`badge_column`, `on_click`.
+`badge_column`, `media_platform`, `on_click`.
 
 When `group_by` is set, `columns` cannot be empty and **every** column except the
 group key needs `agg` (`sum|avg|none`). `format` cannot decide this: spend and
@@ -121,6 +121,30 @@ Omit `format` on DATE/TIMESTAMP/STRING columns: the renderer infers `date`/`date
 `sort` and `limit` are applied by the executor (`widgets[<id>].order`) and the
 renderer still paginates the already-capped list. Prefer SQL `ORDER BY`/`LIMIT`
 for large result sets.
+
+A `ColumnSpec` can set `type: "image"` or `type: "link"`. Numeric `format`
+values (`currency`, `percent`, …) are rejected; omit `format`, or use
+`text` / `date` / `datetime` / `relative_time` for a link label. Default
+`format: "number"` is kept for dump/reload and is ignored on these columns.
+
+| `type` | Notes |
+|---|---|
+| `image` | The column's own value is a media reference, resolved the same way as `GalleryWidget.media_id`: a Meta `creative_id` when `media_platform: "meta"`, or a direct public image URL when `media_platform: "mercadolibre"` / `"tiendanube"`. Requires `media_platform` on the widget. `size` (`sm` 24px / `md` 32px / `lg` 48px, default `sm`) controls the thumbnail. Not sortable or filterable. `label: ""` is fine — the column needs no header |
+| `link` | Renders the column's own (formatted) value as text, linked to the URL in `href_column` (required; must be a column the query returns). Opens in a new tab. A missing, null, or non-string `href_column` value renders plain text, no link |
+
+Image refs are resolved for the rows the executor already selected
+(`widgets[<id>].order`: sorted, then `limit`), not for the page the reader
+happens to be on. Omit `limit` and every query row is resolved, up to the
+query row cap — so with `media_platform: "meta"` the schema requires
+`limit` (60 or less, `gallery`'s cap) whenever a column is `type: "image"`.
+`mercadolibre` / `tiendanube` need no cap: their refs are validated, not
+fetched or cached.
+
+A row whose image reference is null or empty renders an empty cell, never
+a broken-image icon. A `meta` ref that is not a creative id at all (the
+usual cause: `media_platform: "meta"` over a column of mercadolibre image
+URLs) resolves to the same placeholder — it is never fetched, and never
+breaks the rest of the page.
 
 ## gallery
 

@@ -104,7 +104,10 @@ See [references/chart-decision-tree.md](references/chart-decision-tree.md). Pick
 ## Creative galleries (Meta, MercadoLibre, TiendaNube)
 
 `gallery` draws one card per row: the image, up to 4 footer metrics and a status
-chip. It is the only widget backed by media. `media_platform` picks how `media_id`
+chip. `table` can also show images and links per-column (see
+[references/widget-catalog.md](references/widget-catalog.md), `## table`) — this
+section covers the media-resolution rules both widgets share.
+`media_platform` picks how `media_id`
 is resolved -- `"meta"` (default), `"mercadolibre"`, `"tiendanube"` -- and each has
 its own hard requirement that is easy to miss.
 
@@ -188,6 +191,13 @@ against `gold_tiendanube_product_performance` instead of
   grey/missing card, not by putting an arbitrary string into the page's `<img src>`.
   See [references/widget-catalog.md](references/widget-catalog.md)
   (`## gallery`).
+
+For a `table`, set `type: "image"` on a `ColumnSpec` instead of using a
+dedicated media widget — the column's own value is the reference, and
+`media_platform` goes on the `table` widget itself (same three values,
+same resolution rules as above). See
+[references/widget-catalog.md](references/widget-catalog.md) (`## table`)
+for the exact shape.
 
 ## Widget cheat sheet
 
