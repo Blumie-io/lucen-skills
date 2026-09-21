@@ -178,7 +178,7 @@ against `gold_tiendanube_product_performance` instead of
   `thumbnail_url` in `media_id`; Lucen never re-hosts those images.
 - For **`"meta"`** only: cards are `pending` on the first render of a new gallery and
   fill in over a short polling cycle as the cache warms. The other states are `ok`,
-  `unsupported` (no fetchable still) and `missing` (fetch failed). Grey cards on first
+  `unsupported` (no fetchable still) and `missing` (fetch failed, or `media_id` is not a creative id). Grey cards on first
   load are expected, not a bug. **`"mercadolibre"` / `"tiendanube"`** cards are `ok`
   on the first render — no polling.
 - A live Meta connection is required only when `media_platform` is `"meta"`.

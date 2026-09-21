@@ -182,7 +182,7 @@ Card image states:
 | `ok` | `"meta"`: cached image, rendered. `"mercadolibre"` / `"tiendanube"`: the row's own URL passed the host check and is rendered directly |
 | `pending` | `"meta"` only. Not cached yet. The first render of a new gallery schedules the fetch and the portal polls (every 4s, up to 10 times) until the cards fill in. `"mercadolibre"` / `"tiendanube"` never reach this state |
 | `unsupported` | `"meta"` only. The creative has no fetchable still (dynamic product ads, template creatives) |
-| `missing` | `"meta"`: fetch was attempted and failed (Graph error, download error, too large, bad content type). `"mercadolibre"` / `"tiendanube"`: `media_id` was not an `https` URL on the platform's own CDN — usually the query selected the wrong column |
+| `missing` | `"meta"`: fetch was attempted and failed (Graph error, download error, too large, bad content type), or `media_id` is not a creative id (a CDN URL or other wrong-column value). `"mercadolibre"` / `"tiendanube"`: `media_id` was not an `https` URL on the platform's own CDN — usually the query selected the wrong column |
 
 Rows past `limit` are not drawn as cards at all, but they stay in the shared result
 payload — a `table` reading the same `query_version_id` still sees every row.
