@@ -20,7 +20,11 @@
 ## Additive / non-additive
 
 Sales amounts on `gold_mercadolibre_sales_daily` are the commercial net to
-sum. Order **counts** on status tables are not additive across statuses
+sum. `net_sales_amount` is the Mercado Libre Ventas report Total before taxes
+(gross minus sale fee minus shipping cost), so it runs a few percent above the
+report's Total (ARS). Say so when comparing to a seller's export. If
+`net_input_status` is not `complete`, some orders are missing from the net;
+report it as partial. Order **counts** on status tables are not additive across statuses
 (the same order can appear in more than one snapshot). Do not add
 `gold_mercadolibre_sales_daily` to `gold_mercadolibre_orders_status_daily`.
 
