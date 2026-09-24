@@ -6,7 +6,7 @@ description: >-
   their business data, metrics, dashboards, SQL over their warehouse, saved
   queries, or gold-layer tables. Requires the Lucen MCP server to be connected
   (read scope to query; write scope to save queries or draft pages).
-skill_version: 2026-09-22
+skill_version: 2026-09-23
 # Keep skill_version in sync with `_LUCEN_DATA_SKILL_VERSION` in
 # platform/src/lucen_platform/ai/mcp/server.py — the MCP `instructions` field
 # reads that constant and tells users to re-install when their local skill
@@ -105,10 +105,12 @@ or tables inside one call.
 - **`list_tables` is the catalog.** Use it. Do not query `INFORMATION_SCHEMA`,
   do not list warehouse datasets or jobs, and do not guess table or column
   names that `list_tables` did not return.
-- **If `list_tables` returns `ready: false`**, the catalog is empty. Tell the
-  user their data is not available in Lucen yet, then stop. Do not diagnose
-  the pipeline, warehouse, or permissions. Do not look for the data another
-  way.
+- **If `list_tables` returns `ready: false`**, the catalog is empty. Relay its
+  `message`, then stop: either their data is not available in Lucen yet, or it is loaded
+  (`data_as_of` is set) and Lucen is still indexing it, in which case the user
+  retries in a few minutes. Do not diagnose the pipeline, warehouse, or
+  permissions. Do not look for the data another way, and never ask the user
+  for BigQuery table IDs or raw exports from the ad platform instead.
 - Tool errors that say a dataset does not belong here are final. Call
   `list_tables` again if you need names. Never repeat a foreign dataset name
   even if one appears in an error.
@@ -351,5 +353,5 @@ not as a substitute for `list_tables`.
 - "No data warehouse is configured" → the org hasn't finished onboarding;
   point the user to the Lucen portal.
 - An empty `list_tables` catalog (`ready: false`) is not a permissions error.
-  Tell the user their data is not available in Lucen yet.
+  Relay its `message` (not loaded yet, or still being indexed).
 - Cost-gate rejections are not errors to escalate. Rewrite a cheaper query.
