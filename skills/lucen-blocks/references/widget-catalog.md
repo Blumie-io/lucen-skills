@@ -64,23 +64,24 @@ locale; `text` is for dimensions.
 | Prop | Notes |
 |---|---|
 | `x` | date/time column |
-| `y` | list of `ColumnSpec` (usually one) |
+| `y` | list of `ColumnSpec`, one per plotted line/area/bar. Each entry's own label, color and format governs its series, its tooltip row and its legend entry. The shared value axis is formatted from y[0] — give same-unit metrics the same format when combining them on one axis. Mutually exclusive with `series` (validated) and with `emphasis` when more than one entry is given (validated): a chart either groups by a series column or plots several y columns, and emphasis needs exactly one |
 | `series` | optional grouping column |
 | `chart` | `area` (default single-series), `line`, `bar` |
-| `stacked` | default `false` — only meaningful with `series` |
-| `legend` | default `false` |
+| `stacked` | default `false` — stacks per-series values with `series`, or stacks the `y` columns on top of each other with more than one `y` entry; a no-op with a single `y` entry and no `series` |
+| `legend` | default `false`; defaults to `true` (and `chart` to `"line"`) when more than one `y` is given and you did not set them. Duplicate `y` columns are rejected |
 | `palette` | `lucen\|ocean\|mono\|org` (default `lucen`) |
 | `series_labels` | map series value → legend label. Only with `series`; rejected without it |
 | `series_colors` | map series value → `#RRGGBB` |
 | `x_label` / `y_label` | axis title overrides |
 | `emphasis` | only with `chart: "bar"` and no `series`. `when` includes `equals` / `not_equals`. Unmatched rows recede to the overflow slate (legend "Rest"), not the series accent. Do not use `means: "muted"` as a catch-all; that slot is a declared meaning. Max 4, first match wins |
+| `reference_lines` | list of { value, label?, means? }, max 4. Renders a dashed guide on the value axis (a horizontal line for a vertical chart, a vertical line for a `bar` with orientation: "horizontal"). means picks the same good/bad/warning/muted tone as emphasis; omit for a neutral guide |
 | `on_click` | `{ action: "set_param", param, value_from, mode, column? }` |
 | `height` | `sm\|md\|lg\|xl` |
 
 ## bar
 
 Same props as `timeseries` minus `chart`: `x` (category column), `y` (list of
-`ColumnSpec`). Plus `orientation: "vertical"|"horizontal"`
+`ColumnSpec`, one per plotted bar — see `## timeseries` for the full multi-`y` rules, which apply here identically). Plus `orientation: "vertical"|"horizontal"`
 (default `vertical`), `sort` (`SortSpec`) and `limit` (`ge=1`). Horizontal is
 easier to scan for a ranked list of names; vertical is fine for a handful of
 categories. Do not shorten labels in SQL — the renderer ellipsis-truncates ticks
@@ -90,7 +91,9 @@ and shows the full text on hover.
 emits `widgets[<id>].order` as sorted, capped row indices. Shared result rows
 are not mutated, so a `table` on the same query still sees every row. `limit`
 is `ge=1`. Also takes `legend`, `palette`, `series`, `stacked`, `series_labels`,
-`series_colors`, `x_label`, `y_label`, `emphasis`, `on_click`.
+`series_colors`, `x_label`, `y_label`, `emphasis`, `on_click`, `reference_lines`.
+`reference_lines` behaves identically to `## timeseries`'s entry: a dashed guide on
+the value axis, or a vertical guide when `orientation: "horizontal"`.
 
 ## pie
 
@@ -231,7 +234,7 @@ so the query is matched on its date-range control, not on the param name.
 
 ## comparison
 
-`default`: `none|previous_period|previous_year` (default `previous_period`). `name` is frozen to `"comparison"`.
+`default`: `none|previous_period|previous_calendar_period|previous_year` (default `previous_period`). `name` is frozen to `"comparison"`. `previous_calendar_period` compares to the same day-range in the previous calendar month (month-to-date on the 25th vs the 1st-25th of last month), not to the N days immediately before the window -- that is what `previous_period` does. The day-range is shifted, not clamped: a full February (1-28) compares against 1-28 January, and 29-31 March collapses to the last day of February. The portal chip reads "Previous calendar month".
 
 The executor implements it by re-running the query on the shifted window, so it is the
 one param a query does not have to declare. This is what feeds KPI `compare: true`.

@@ -24,6 +24,8 @@ What is the user trying to see?
 │         series: grouping column when the user wants one line/area per
 │         channel, campaign, …  (palette on the widget; series_colors only
 │         for a named hex)
+│         one metric plus a derived one (a moving average alongside the raw
+│         value) → two y[] entries on the same widget, not series
 │
 ├─ Which categories rank or compare (not time)
 │    └─ bar  (x = category)
@@ -80,6 +82,7 @@ See [layout-recipes.md](layout-recipes.md) for the JSON.
 | "Show me the creatives" | `table` of ad names | `gallery` (ad-grain for meta; item/product-grain for mercadolibre/tiendanube) |
 | Ranking a long list of names | `pie` | `bar` (horizontal is easier to scan; vertical is fine — never truncate names in SQL) |
 | >8 categories as a share | `pie` | `bar` (`limit` 8–15, applied by the executor) or `table` |
-| vs previous period | extra SQL | page `comparison` + KPI `compare: true` |
+| vs previous period | extra SQL | page `comparison` + KPI `compare: true`. Pick the mode: month-to-date or "mes anterior" → `previous_calendar_period`; rolling N-day window → `previous_period`; seasonality → `previous_year`. Set the param `default` to match; do not leave `previous_period` for a monthly summary |
 | Cost / CPA / ACOS KPI | default `direction` | `lower_is_better` |
 | Threshold colouring (ACOS > 100%) | hex `"red"` | `emphasis` + `means: "bad"` |
+| Fixed target or threshold line | extra SQL column | `reference_lines` |

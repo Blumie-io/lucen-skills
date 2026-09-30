@@ -1,7 +1,7 @@
 ---
 name: lucen-blocks
 description: "Author Lucen Blocks dashboards over MCP. Trigger when the user wants to create, edit, restyle, or rearrange a Blocks page/dashboard; change chart colours or types; add KPIs with period comparison; compose rows/stacks/markdown; or anything involving upsert_page / get_page / list_pages for Lucen Blocks."
-skill_version: 2026-09-11
+skill_version: 2026-09-30
 # Keep skill_version in sync with `_LUCEN_BLOCKS_SKILL_VERSION` in
 # platform/src/lucen_platform/ai/mcp/server.py.
 ---

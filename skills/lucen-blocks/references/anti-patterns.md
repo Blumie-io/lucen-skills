@@ -2,11 +2,13 @@
 
 | Don't | Do instead |
 |---|---|
+| Put a moving average or a second metric in a separate widget because "y only takes one column" | Add a second entry to y[] — each gets its own color, label and legend row (two or more `y` default to `chart: "line"` with the legend on) |
+| Add a constant "target" column in SQL and plot it as a fake series to draw a threshold line | `reference_lines` on the widget |
 | Put SQL in the page spec | `save_query` → pin `query_version_id` |
 | Nest `row` inside `row` | `row` → `stack` → `row` |
 | Nest `stack` inside `stack` | Flatten or insert a `row` |
 | Emit `color: "red"` or CSS | `#DC2626` or `means: "bad"` |
-| Compute “vs previous period” in SQL | Page `comparison` param + KPI `compare: true` |
+| Compute “vs previous period” in SQL | Page `comparison` param + KPI `compare: true`; use `previous_calendar_period` for month-to-date, `previous_period` for rolling windows |
 | Leave `direction` default on cost KPIs | `lower_is_better` for CPA/CPC/ACOS |
 | Use `#` markdown for the page title | Page `title` field is the H1 |
 | Fake headings with bold paragraphs | Real `##` / `###` |
