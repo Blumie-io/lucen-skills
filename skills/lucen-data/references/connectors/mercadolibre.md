@@ -7,7 +7,7 @@
 | `gold_mercadolibre_ads_campaign_performance` | campaign / day | Product Ads campaigns |
 | `gold_mercadolibre_ads_ad_group_performance` | ad group / day | Ad group delivery |
 | `gold_mercadolibre_ads_ad_group_items` | ad group / item | Items in an ad group |
-| `gold_mercadolibre_sales_daily` | day | Reporting-ready commercial sales |
+| `gold_mercadolibre_sales_daily` | seller / currency / product variation / status / day | Reporting-ready commercial sales |
 | `gold_mercadolibre_sales_by_region_daily` | region / day | Sales geo |
 | `gold_mercadolibre_orders_status_daily` | status / day | Order counts by status |
 | `gold_mercadolibre_orders_status_by_region_daily` | status / region / day | Status geo |
@@ -16,6 +16,12 @@
 | `gold_mercadolibre_pack_split_lineage` | pack / order | Split-pack lineage |
 | `gold_mercadolibre_items` | item | Item catalog |
 | `gold_mercadolibre_order_geography` | order | Order geo grain |
+
+Mercado Pago audit facts use the existing Mercado Libre seller connection. They do
+not change the main sales contract until canonical cutover. Signed account-money
+net already includes provider deductions. Never add payment snapshot net to
+movements or deduct their fees/taxes again. Unknown account movements remain
+unresolved; absent order references do not classify a charge.
 
 ## Additive / non-additive
 
