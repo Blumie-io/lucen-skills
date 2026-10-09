@@ -15,13 +15,15 @@ second title) and `height` (`sm|md|lg|xl`, default `md`).
 | Field | Notes |
 |---|---|
 | `title` | Page H1 |
-| `icon` | Optional emoji or icon token for the page tree |
+| `icon` | Optional. One emoji (`📊`) or `lucide:<name>` from the list below (`lucide:bar-chart-3`). Never a bare name like `chart-line`: it is rejected. Omit it when unsure |
 | `description` | Optional one-line summary |
 | `palette` | Default chart palette (`lucen\|ocean\|mono\|org`, default `lucen`) |
 | `params` | Header filter bar. See [Page params](#page-params) |
 | `body` | Flow tree of nodes |
 
 `spec_version` is always `1` and authors can omit it.
+
+Page icon names (`lucide:<name>`): `bar-chart-3`, `line-chart`, `pie-chart`, `trending-up`, `trending-down`, `activity`, `gauge`, `dollar-sign`, `wallet`, `credit-card`, `coins`, `receipt`, `shopping-cart`, `shopping-bag`, `store`, `package`, `truck`, `tag`, `megaphone`, `target`, `sparkles`, `rocket`, `mail`, `message-square`, `share-2`, `bell`, `users`, `user`, `building-2`, `handshake`, `heart`, `file-text`, `folder`, `bookmark`, `book-open`, `image`, `video`, `camera`, `calendar`, `clock`, `globe`, `monitor`, `smartphone`, `database`, `cloud`, `settings`, `search`, `layout-dashboard`, `map`, `home`, `star`, `flag`, `lightbulb`, `zap`, `award`, `gift`.
 
 ### Shared shapes
 
