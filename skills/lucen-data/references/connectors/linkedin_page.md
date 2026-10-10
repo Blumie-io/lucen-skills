@@ -33,6 +33,22 @@ activity use `gold_linkedin_page_share_stats`, not the per-post snapshot. `likes
 removed. `shares` excludes instant reposts. `engagement` is a ratio, not a
 count.
 
+## Unknown values, provisional days and net change
+
+- **NULL means unknown, not zero.** In `gold_linkedin_page_post_stats_snapshot`,
+  `stats_returned` is TRUE when LinkedIn returned numbers for the post. When it is
+  FALSE the counters are NULL: the post is older than LinkedIn's 12-month statistics
+  window, or LinkedIn gave no answer. Never read those as zero activity.
+- **Provisional days.** The daily tables have `is_provisional`: TRUE for the last 2
+  days, which LinkedIn may still restate (zeros or partial values). Leave them out of
+  week-over-week comparisons.
+- **Net follower change.** `gold_linkedin_page_followers_snapshot.net_change` is the
+  change in total followers since the previous snapshot. LinkedIn does not expose
+  unfollows, so losses can only be implied (gains minus net change) over
+  consecutive daily snapshots.
+- **Careers views mirror jobs.** `careers_page_views` equals `jobs_page_views`, and
+  `all_page_views` already includes jobs: never add careers on top.
+
 ## Ratios
 
 `engagement` is provided by LinkedIn as a ratio. Recompute rates from counts
