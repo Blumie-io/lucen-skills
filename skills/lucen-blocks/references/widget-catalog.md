@@ -171,7 +171,8 @@ One card per item: image, metrics footer, status chip. `media_platform` chooses 
 The org needs a live Meta connection. Images are served by Lucen from its own bucket,
 never by Meta's CDN: creative URLs are signed and expire within days, so the row
 payload never carries a provider URL. The executor resolves each id against Lucen's
-`CreativeAsset` cache and returns a side map keyed by widget id.
+`CreativeAsset` cache and returns a side map keyed by widget id. A carousel creative
+renders all its cards in the same card (arrows and dots); nothing to configure.
 
 **`media_platform: "mercadolibre"` / `"tiendanube"`** — Query at **item or product
 grain**. Select the gold layer's `thumbnail_url` into `media_id` (`http2.mlstatic.com`
