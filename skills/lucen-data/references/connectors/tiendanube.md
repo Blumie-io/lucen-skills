@@ -43,7 +43,7 @@ What this changes for a query:
   drop out of an AVG on their own.
 - `is_zero_filled` means "the source reported no orders that day", not "the
   pipeline was healthy". Inside the observed window it cannot tell a real
-  zero apart from a missed sync — cross it with source freshness if the
+  zero apart from a missed sync — cross it with completed-load and run evidence if the
   answer depends on that.
 
 `gold_tiendanube_funnel_daily` and `gold_tiendanube_attribution_daily` are
