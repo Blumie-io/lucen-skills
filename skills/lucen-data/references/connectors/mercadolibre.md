@@ -47,6 +47,9 @@ Unlinked funding, withdrawals, advertising and account activity are outside sale
 
 Daily and regional sales read one validated sales-line snapshot. `net_sales_amount`
 is payment-and-billing net, with `net_sales_source`, `net_data_status` and `net_data_as_of`.
+They are tables: amounts and status remain as last built until the next successful
+dbt rebuild. A failure before dbt cannot update their status. Check financial
+cutoff and pipeline freshness, not status alone.
 Refunds revise the original sale month. Ventas is a comparison with its own
 population and cutoff; do not promise exact equality to its Total.
 
