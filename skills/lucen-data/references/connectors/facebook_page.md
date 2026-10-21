@@ -18,6 +18,10 @@ filtered by the Page `account_id` on its connection. There is no property map.
 `content_type` on posts and reels uses the shared words `static`, `carousel`,
 `video`, `share` and `reels`.
 
+Like, comment and share counts on posts and reels are NULL until the connector
+has Meta's `pages_read_user_content` permission. Treat NULL as unknown, not zero.
+Post views, unique viewers, reactions by type and reel plays are populated.
+
 ## Additive / non-additive
 
 `views`, `organic_views`, `page_views` and `post_engagements` on
