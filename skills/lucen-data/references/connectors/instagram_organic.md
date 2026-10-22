@@ -29,7 +29,8 @@ substitute.
 figure. Sum it across days. Do not sum media counters to invent it. NULL means
 unknown, not zero.
 
-`followers` is a stock: the latest snapshot on or before the date.
+`followers` is a stock: the latest snapshot taken up to the day after the date,
+because the run that closes a day runs the next morning.
 `followers_snapshot_date` says which day it came from. Take the latest value in
 a period. Never sum daily follower rows.
 
