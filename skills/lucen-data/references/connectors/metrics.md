@@ -24,9 +24,8 @@ Every measure (`impressions`, `clicks`, `spend`, `conversions`,
 same source **and the same currency**. `currency` is part of the grain: never
 SUM `spend` across currencies. Group by `currency` or filter to one.
 
-A NULL measure means that source does not report it (Meta has no
-`conversions` here, ad platforms other than Google Ads have no
-`conversion_value`). It is not zero: do not COALESCE it to 0 before an
+A NULL measure means that source does not report it (TikTok and LinkedIn have
+no `conversion_value`; Meta is NULL on days or accounts without action data). It is not zero: do not COALESCE it to 0 before an
 average or a ratio.
 
 ## Ratios
@@ -45,7 +44,7 @@ month's impressions.
 ## Do not join / do not sum
 
 - `conversions` and `conversion_value` mean different things per source:
-  Google Ads conversions, TikTok optimization events, LinkedIn website
+  Google Ads conversions, Meta purchases (`omni_purchase`, 7-day click window), TikTok optimization events, LinkedIn website
   conversions, store gross revenue for Shopify and Tienda Nube. Do not add
   them across sources.
 - Store revenue (`shopify`, `tiendanube`) and ad platform conversions describe
