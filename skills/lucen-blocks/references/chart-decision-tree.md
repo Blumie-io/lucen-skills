@@ -45,6 +45,8 @@ What is the user trying to see?
 ├─ Which ad creatives, products, or catalog items are working (the user wants to SEE them)
 │    └─ gallery
 │         `"meta"`: ad grain; media_id = Meta creative_id; title_column = ad name
+│         `"facebook_page"`: post grain (media_id = post_id) or reel grain (media_id = video_id)
+│         `"instagram"`: organic media grain; media_id = media_id (never image_url)
 │         `"mercadolibre"` / `"tiendanube"`: item/product grain; media_id = thumbnail_url; title_column = item name
 │         metrics: up to 4; sort + limit ARE applied here (executor)
 │

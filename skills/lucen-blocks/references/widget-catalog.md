@@ -134,13 +134,14 @@ values (`currency`, `percent`, …) are rejected; omit `format`, or use
 
 | `type` | Notes |
 |---|---|
-| `image` | The column's own value is a media reference, resolved the same way as `GalleryWidget.media_id`: a Meta `creative_id` when `media_platform: "meta"`, or a direct public image URL when `media_platform: "mercadolibre"` / `"tiendanube"`. Requires `media_platform` on the widget. `size` (`sm` 24px / `md` 32px / `lg` 48px, default `sm`) controls the thumbnail. Not sortable or filterable. `label: ""` is fine — the column needs no header |
+| `image` | The column's own value is a media reference, resolved the same way as `GalleryWidget.media_id`: a Meta `creative_id` when `media_platform: "meta"`, a Page `post_id` / reel `video_id` when `"facebook_page"`, an Instagram `media_id` when `"instagram"`, or a direct public image URL when `media_platform: "mercadolibre"` / `"tiendanube"`. Requires `media_platform` on the widget. `size` (`sm` 24px / `md` 32px / `lg` 48px, default `sm`) controls the thumbnail. Not sortable or filterable. `label: ""` is fine — the column needs no header |
 | `link` | Renders the column's own (formatted) value as text, linked to the URL in `href_column` (required; must be a column the query returns). Opens in a new tab. A missing, null, or non-string `href_column` value renders plain text, no link |
 
 Image refs are resolved for the rows the executor already selected
 (`widgets[<id>].order`: sorted, then `limit`), not for the page the reader
 happens to be on. Omit `limit` and every query row is resolved, up to the
-query row cap — so with `media_platform: "meta"` the schema requires
+query row cap — so with a cached `media_platform` (`"meta"`, `"facebook_page"`,
+`"instagram"`) the schema requires
 `limit` (60 or less, `gallery`'s cap) whenever a column is `type: "image"`.
 `mercadolibre` / `tiendanube` need no cap: their refs are validated, not
 fetched or cached.
@@ -158,13 +159,13 @@ One card per item: image, metrics footer, status chip. `media_platform` chooses 
 
 | Prop | Notes |
 |---|---|
-| `media_id` | **Required.** For `"meta"`: column holding Meta's `creative_id` (one card per distinct id). For `"mercadolibre"` / `"tiendanube"`: column holding the gold layer's `thumbnail_url` — already a direct, public image URL |
-| `title_column` | **Required.** Ad name when `media_platform` is `"meta"`; product or item name for `"mercadolibre"` / `"tiendanube"` |
+| `media_id` | **Required.** For `"meta"`: column holding Meta's `creative_id` (one card per distinct id). For `"facebook_page"`: `post_id` (posts) or `video_id` (reels). For `"instagram"`: the organic `media_id`. Never the gold `image_url` (it expires). For `"mercadolibre"` / `"tiendanube"`: column holding the gold layer's `thumbnail_url` — already a direct, public image URL |
+| `title_column` | **Required.** Ad name when `media_platform` is `"meta"`; post text or caption for `"facebook_page"` / `"instagram"`; product or item name for `"mercadolibre"` / `"tiendanube"` |
 | `metrics` | Up to 4 `ColumnSpec` for the card footer. Four is the readable maximum on one card |
 | `status_column` | Column rendered as the Active/Paused chip. `ACTIVE`/`ENABLED`/`LIVE` render green, anything else grey |
 | `sort` | `{ column, order }` (`asc` or `desc`, default `desc`). **Applied by the executor.** Omitted = the order the query returned |
-| `limit` | Cards rendered per render. For `"meta"` it also bounds how many creative ids are resolved against the cache. Default `24`, hard cap `60`. **Applied by the executor** |
-| `media_platform` | `"meta"` (default), `"mercadolibre"`, or `"tiendanube"` |
+| `limit` | Cards rendered per render. For the cached platforms (`"meta"`, `"facebook_page"`, `"instagram"`) it also bounds how many ids are resolved against the cache. Default `24`, hard cap `60`. **Applied by the executor** |
+| `media_platform` | `"meta"` (default), `"facebook_page"`, `"instagram"`, `"mercadolibre"`, or `"tiendanube"` |
 | `on_click` | `{ action: "set_param", param, value_from: "column", column, mode }`. A card has no category axis and no series, so `value_from: "category"` / `"series"` resolve to nothing and the click is a silent no-op — always use `"column"` here |
 
 **`media_platform: "meta"`** — Query at **ad grain** so every row carries a creative id.
@@ -173,6 +174,14 @@ never by Meta's CDN: creative URLs are signed and expire within days, so the row
 payload never carries a provider URL. The executor resolves each id against Lucen's
 `CreativeAsset` cache and returns a side map keyed by widget id. A carousel creative
 renders all its cards in the same card (arrows and dots); nothing to configure.
+
+**`media_platform: "facebook_page"` / `"instagram"`** — Organic content, cached exactly
+like `"meta"`. Facebook Page: `gold_facebook_page_post` with `media_id: "post_id"`, or
+`gold_facebook_page_reel` with `media_id: "video_id"`. Instagram: `gold_instagram_media`
+with `media_id: "media_id"`. The org needs a live `facebook_page` / `instagram_organic`
+connection. Reels and videos show their still thumbnail; an album or Instagram
+carousel renders all its cards. A text-only Page post is `unsupported`. Putting an
+organic id on `"meta"` (the default) fetches it as an ad creative and fails.
 
 **`media_platform: "mercadolibre"` / `"tiendanube"`** — Query at **item or product
 grain**. Select the gold layer's `thumbnail_url` into `media_id` (`http2.mlstatic.com`
@@ -185,10 +194,10 @@ Card image states:
 
 | State | Means |
 |---|---|
-| `ok` | `"meta"`: cached image, rendered. `"mercadolibre"` / `"tiendanube"`: the row's own URL passed the host check and is rendered directly |
-| `pending` | `"meta"` only. Not cached yet. The first render of a new gallery schedules the fetch and the portal polls (every 4s, up to 10 times) until the cards fill in. `"mercadolibre"` / `"tiendanube"` never reach this state |
-| `unsupported` | `"meta"` only. The creative has no fetchable still (dynamic product ads, template creatives) |
-| `missing` | `"meta"`: fetch was attempted and failed (Graph error, download error, too large, bad content type), or `media_id` is not a creative id (a CDN URL or other wrong-column value). `"mercadolibre"` / `"tiendanube"`: `media_id` was not an `https` URL on the platform's own CDN — usually the query selected the wrong column |
+| `ok` | Cached platforms (`"meta"`, `"facebook_page"`, `"instagram"`): cached image, rendered. `"mercadolibre"` / `"tiendanube"`: the row's own URL passed the host check and is rendered directly |
+| `pending` | Cached platforms only. Not cached yet. The first render of a new gallery schedules the fetch and the portal polls (every 4s, up to 10 times) until the cards fill in. `"mercadolibre"` / `"tiendanube"` never reach this state |
+| `unsupported` | Cached platforms only. No fetchable still (dynamic product ads, template creatives, a text-only Page post) |
+| `missing` | Cached platforms: fetch was attempted and failed (Graph error, download error, too large, bad content type, a reel with no still yet), or `media_id` is not an id of that platform (a CDN URL or other wrong-column value). `"mercadolibre"` / `"tiendanube"`: `media_id` was not an `https` URL on the platform's own CDN — usually the query selected the wrong column |
 
 Rows past `limit` are not drawn as cards at all, but they stay in the shared result
 payload — a `table` reading the same `query_version_id` still sees every row.

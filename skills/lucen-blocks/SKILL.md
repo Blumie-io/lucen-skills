@@ -110,8 +110,10 @@ chip. `table` can also show images and links per-column (see
 [references/widget-catalog.md](references/widget-catalog.md), `## table`) — this
 section covers the media-resolution rules both widgets share.
 `media_platform` picks how `media_id`
-is resolved -- `"meta"` (default), `"mercadolibre"`, `"tiendanube"` -- and each has
-its own hard requirement that is easy to miss.
+is resolved -- `"meta"` (default), `"facebook_page"`, `"instagram"`, `"mercadolibre"`,
+`"tiendanube"` -- and each has its own hard requirement that is easy to miss.
+`"meta"`, `"facebook_page"` and `"instagram"` are the **cached** platforms: `media_id`
+is an id, and Lucen stores the image in its own bucket.
 
 **For `media_platform: "meta"`, the query must be at ad grain.** `media_id` names
 the column holding Meta's `creative_id`, and a query aggregated by campaign does not
@@ -119,6 +121,16 @@ have one — there is no creative id at campaign grain, so the widget renders no
 Group by ad (or by creative), not by campaign or ad set, and select the creative id
 column explicitly. `campaign_id`, `adset_id` and `ad_id` are all the wrong column:
 only the creative id resolves to an image.
+
+**For `media_platform: "facebook_page"`, the query must be at post or reel grain.**
+A gallery of Page posts reads `gold_facebook_page_post` with `media_id: "post_id"`; a
+gallery of reels reads `gold_facebook_page_reel` with `media_id: "video_id"`. **For
+`media_platform: "instagram"`**, read `gold_instagram_media` with `media_id: "media_id"`
+(organic posts and reels; an Instagram post promoted as an ad is still a `"meta"`
+creative). Never put `image_url` in `media_id`: it is the expiring Meta CDN link, kept
+for SQL and Ask, and a URL resolves to `missing`. And never put an organic id on
+`media_platform: "meta"` (the default): it looks like a creative id and is fetched as
+an ad creative, which fails.
 
 **For `media_platform: "mercadolibre"` / `"tiendanube"`, the query must be at
 item/product grain**, and `media_id` must select the gold layer's `thumbnail_url`
@@ -169,23 +181,48 @@ MercadoLibre / TiendaNube example — same shape, one extra field
 against `gold_tiendanube_product_performance` instead of
 `gold_mercadolibre_items`.
 
+Facebook Page example (Instagram is the same with `media_platform: "instagram"`,
+`media_id: "media_id"` and a query on `gold_instagram_media`):
+
+```json
+{
+  "type": "gallery",
+  "id": "gal_posts",
+  "title": "Posts",
+  "data": { "query": "<query_version_id>" },
+  "media_platform": "facebook_page",
+  "media_id": "post_id",
+  "title_column": "text",
+  "metrics": [
+    { "column": "cumulative_views", "format": "number_compact", "direction": "higher_is_better" }
+  ],
+  "sort": { "column": "published_at", "order": "desc" },
+  "limit": 24
+}
+```
+
 - `sort` and `limit` are applied **by the executor** here (and on `bar` / `pie` /
   `table` via `widgets[<id>].order`). Do not also rank and cap in SQL. `limit` defaults to 24
-  and is hard-capped at 60; it always bounds the cards drawn. For `media_platform:
-  "meta"` it also bounds how many creative ids are resolved and cached per render.
-- For **`media_platform: "meta"`**, images are served **by Lucen from its own bucket**,
-  never by Meta. Meta's creative URLs are signed and expire within days, so the row
-  payload never carries a provider CDN URL — the query supplies the `creative_id` in
-  `media_id`. For **`"mercadolibre"` / `"tiendanube"`**, put the gold layer's final
-  `thumbnail_url` in `media_id`; Lucen never re-hosts those images.
-- For **`"meta"`** only: cards are `pending` on the first render of a new gallery and
-  fill in over a short polling cycle as the cache warms. The other states are `ok`,
-  `unsupported` (no fetchable still) and `missing` (fetch failed, or `media_id` is not a creative id). Grey cards on first
-  load are expected, not a bug. **`"mercadolibre"` / `"tiendanube"`** cards are `ok`
-  on the first render — no polling.
-- A live Meta connection is required only when `media_platform` is `"meta"`.
-  `"mercadolibre"` and `"tiendanube"` need no connection because `media_id` already
-  holds the image URL.
+  and is hard-capped at 60; it always bounds the cards drawn. For the cached platforms
+  (`"meta"`, `"facebook_page"`, `"instagram"`) it also bounds how many ids are resolved
+  and cached per render.
+- For the **cached platforms**, images are served **by Lucen from its own bucket**,
+  never by Meta. Meta's URLs are signed and expire within days, so the row payload
+  never carries a provider CDN URL — the query supplies the id in `media_id`. A reel
+  or video card shows its still thumbnail, never the video. For
+  **`"mercadolibre"` / `"tiendanube"`**, put the gold layer's final `thumbnail_url` in
+  `media_id`; Lucen never re-hosts those images.
+- For the **cached platforms** only: cards are `pending` on the first render of a new
+  gallery and fill in over a short polling cycle as the cache warms. The other states
+  are `ok`, `unsupported` (no fetchable still, e.g. a text-only Page post) and
+  `missing` (fetch failed, or `media_id` is not an id of that platform). Grey cards on
+  first load are expected, not a bug. Share links never fill: they show only what is
+  already cached. **`"mercadolibre"` / `"tiendanube"`** cards are `ok` on the first
+  render — no polling.
+- Each cached platform needs a live connection: `"meta"` a Meta Ads
+  (`meta_marketing`) connection, `"facebook_page"` a `facebook_page` connection,
+  `"instagram"` an `instagram_organic` connection. `"mercadolibre"` and `"tiendanube"`
+  need no connection because `media_id` already holds the image URL.
 - For **`"mercadolibre"` / `"tiendanube"`**, `media_id` is validated, not trusted as-is:
   it must be an `https` URL on `*.mlstatic.com` / `*.mitiendanube.com`. Anything else
   (wrong scheme, wrong host, a malformed value) resolves to `missing` instead of
@@ -196,7 +233,7 @@ against `gold_tiendanube_product_performance` instead of
 
 For a `table`, set `type: "image"` on a `ColumnSpec` instead of using a
 dedicated media widget — the column's own value is the reference, and
-`media_platform` goes on the `table` widget itself (same three values,
+`media_platform` goes on the `table` widget itself (same five values,
 same resolution rules as above). See
 [references/widget-catalog.md](references/widget-catalog.md) (`## table`)
 for the exact shape.
