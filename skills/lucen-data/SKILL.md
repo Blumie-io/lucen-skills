@@ -263,12 +263,21 @@ Hard rules that belong here because they are data-binding, not visual:
 - Page `params` are header controls. Every control must reach every widget: each
   pinned query must declare that param, or the widget must list it in
   `data.ignores`.
+- A `timeseries` widget with `grain` (Day / Week / Month / Year toggle) needs a
+  query that declares a STRING param `grain` and groups with
+  `CASE @grain WHEN 'week' THEN DATE_TRUNC(date, ISOWEEK) WHEN 'month' THEN DATE_TRUNC(date, MONTH) WHEN 'year' THEN DATE_TRUNC(date, YEAR) ELSE date END AS period`.
+  Compute ratios as `SAFE_DIVIDE(SUM(a), SUM(b))` at that grain, never an average
+  of daily ratios.
 - `upsert_page` writes a **draft** only. Pages stay drafts until a person
   publishes them in the Lucen portal.
 
 ## Tool details
 
 ### find_query / list_queries / save_query
+
+For a chart with a time-grain toggle, `save_query` the query with
+`{"name": "grain", "type": "STRING", "default": "day"}` and use `@grain` in the SQL
+(the `ISOWEEK` / `MONTH` / `YEAR` CASE above).
 
 `find_query` and `list_queries` return each query's `sql` and an `approval`
 field that says where it came from. Only `approval: "reviewed_in_portal"` means

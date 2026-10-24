@@ -79,6 +79,27 @@ locale; `text` is for dimensions.
 | `reference_lines` | list of { value, label?, means? }, max 4. Renders a dashed guide on the value axis (a horizontal line for a vertical chart, a vertical line for a `bar` with orientation: "horizontal"). means picks the same good/bad/warning/muted tone as emphasis; omit for a neutral guide |
 | `on_click` | `{ action: "set_param", param, value_from, mode, column? }` |
 | `height` | `sm\|md\|lg\|xl` |
+| `grain` | `{ default, options }`: time-grain toggle. `default` and every entry of `options` is one of `day`, `week`, `month`, `year`; `options` has 2 to 4 unique entries and includes `default`. Only valid when the widget's query declares a STRING param named `grain` (`params: [{"name": "grain", "type": "STRING", "default": "day"}]` on `save_query`); `upsert_page` rejects it otherwise. The viewer picks the grain with a Day / Week / Month / Year toggle (only your `options`), the executor binds the choice, or `default`, to `@grain`, and the x axis labels itself for that grain. The query must group at that grain, see the SQL below. `bind: {grain: ...}` beats the viewer, but needs a page param named `grain` (bind keys must be declared page params). Shared pages show the `default` and no toggle. Only `timeseries` supports it (not `bar`). Patch with `set` and `fields: {grain: {...}}`, or `fields: {grain: null}` to remove it; a `replace` that omits `grain` removes it |
+
+Grain-aware query (BigQuery). Ratios such as ROAS are `SAFE_DIVIDE` of the sums at the
+grouped grain, never an average of daily ratios:
+
+```sql
+SELECT
+  CASE @grain
+    WHEN 'week' THEN DATE_TRUNC(date, ISOWEEK)
+    WHEN 'month' THEN DATE_TRUNC(date, MONTH)
+    WHEN 'year' THEN DATE_TRUNC(date, YEAR)
+    ELSE date
+  END AS period,
+  SUM(spend) AS spend,
+  SAFE_DIVIDE(SUM(revenue), SUM(spend)) AS roas
+FROM ...
+GROUP BY period
+ORDER BY period
+```
+
+Use `x: "period"` on the widget.
 
 ## bar
 
