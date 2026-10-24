@@ -234,11 +234,15 @@ header control.
 
 ## date_range
 
-`default` (a `DatePreset`: `today|yesterday|this_week|this_month|last_7d|last_30d|last_90d|last_12m|last_month|this_year`,
+`default` (a `DatePreset`: `today|yesterday|this_week|last_week|this_month|last_month|this_quarter|last_quarter|this_year|last_7d|last_14d|last_28d|last_30d|last_90d|last_12m`,
 default `last_30d`),
-`presets` (the control's list; default is `last_7d`, `last_30d`, `last_90d`,
-`last_12m`, `today`, `yesterday`, `this_month`, `last_month`, `this_year` —
-`this_week` is a valid preset but is **not** in that default list),
+`presets` (the control's list; default, in this order: `today`, `yesterday`,
+`last_7d`, `last_14d`, `last_28d`, `last_30d`, `last_90d`, `this_week`, `last_week`,
+`this_month`, `last_month`, `this_quarter`, `last_quarter`, `this_year`, `last_12m`).
+A page that already stores a `presets` array keeps it; the default only applies when
+the field is omitted. `last_week` is the previous Monday-Sunday; `this_quarter` is the
+calendar quarter to today; `last_quarter` is the previous full calendar quarter.
+Rolling presets (`last_7d` ...) include today, so `last_7d` spans 8 days.
 `allow_custom` (default `true`), `max_span_days` (`ge=1`).
 
 `name` is frozen to `"date_range"`. Maps to the SQL `@start_date` / `@end_date` pair,

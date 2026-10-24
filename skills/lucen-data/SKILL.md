@@ -293,7 +293,9 @@ Param values come from the query's `param_schema` (returned by
 
 - `date_range`: a preset string or a custom range.
   - **Named presets**: `this_week`, `this_month`, `last_7d`, `last_30d`,
-    `last_90d`, `last_12m`, `today`, `yesterday`, `last_month`, `this_year`.
+    `last_90d`, `last_12m`, `today`, `yesterday`, `last_month`, `this_year`,
+    `last_week` (previous Monday-Sunday), `this_quarter` (calendar quarter to
+    today), `last_quarter` (previous full calendar quarter).
   - **Dynamic rolling window**: `last_{N}d` / `last_{N}w` / `last_{N}m` for
     any positive integer N up to 730 days. `last_9d`, `last_14d`, `last_2w`,
     `last_6m` all work without a hardcoded literal — pick whatever fits the
