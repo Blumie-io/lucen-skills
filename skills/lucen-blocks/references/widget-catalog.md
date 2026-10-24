@@ -135,7 +135,13 @@ the value axis, or a vertical guide when `orientation: "horizontal"`.
 
 `columns` (order + format + `agg` when `group_by`; empty `columns: []` means every
 column as returned), `sort` (`SortSpec`), `limit` (`ge=1`), `group_by`,
-`badge_column`, `media_platform`, `on_click`.
+`badge_column`, `media_platform`, `on_click`, `column_widths`.
+
+`column_widths` is `{column: px}`, integers 60-800, only for columns listed in `columns`
+(any name when `columns` is empty). A column it omits sizes itself. People set it by
+dragging a header edge in edit mode; leave it out when authoring a page. It is stored
+as a layout preference like `span` and `height`, so a later `replace` of the table
+keeps it. `set` with `column_widths: {}` clears every width.
 
 When `group_by` is set, `columns` cannot be empty and **every** column except the
 group key needs `agg` (`sum|avg|none`). `format` cannot decide this: spend and
