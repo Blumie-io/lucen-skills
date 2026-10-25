@@ -1,5 +1,7 @@
 # Shopify
 
+A store is connected by an App Store listing install (no typed shop domain; Shopify App Pricing is planned, LUC-209, and is not live) or from the Lucen website as a data source (store handle; Lucen billing).
+
 ## Tables and grain
 
 | Table | Grain | Use for |
