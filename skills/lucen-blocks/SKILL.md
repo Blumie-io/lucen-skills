@@ -54,6 +54,8 @@ tendencia, por día, over time* → `timeseries`.
 3. **Edit:** `get_page(slug)` then `upsert_page(slug, patch=[...])`. Never resend the full body for a small change
 4. Iterate on the draft; never claim you published
 
+**Access.** `get_page` returns `my_role` (`view`, `edit` or `full`). With `view` you get the published version only, and `upsert_page` answers 403 "you need edit access": tell the user to ask a Full holder for edit access instead of retrying.
+
 **Which page.** Every page in Lucen shows a copyable ID next to its title. When the user pastes one (a UUID, or its first 8 characters), pass it as `page_id` to `get_page` and `upsert_page` instead of `slug` (and as `page_id` to `create_alert` and `create_report`), and do not look the page up by title: titles repeat (an agency has a "Meta Ads" page under each client). A `page_id` also names its org, so `org_id` can be omitted. Without an ID, `list_pages` gives each page's `path` (`["Client A", "Meta Ads"]`); when two pages share a title, name them by path and ask which one.
 
 `upsert_page` takes exactly one of `spec` or `patch`. `patch` requires `slug` or `page_id`. Ops are keyed by node `id`: `set` (title/subtitle/span/height), `remove`, `move`, `insert`, `replace`, `set_page`. A patch copies the rest of the tree, so an unrelated widget cannot disappear.
