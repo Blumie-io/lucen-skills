@@ -22,6 +22,10 @@ Do not join `gold_vtex_orders` to itself on different dates expecting one row pe
 
 VTEX OMS data is store order facts, not ad-platform attribution. UTM or marketplace origin fields on the order (`origin`, `sales_channel`) describe the store's own classification, not Meta or Google click windows.
 
+## Freshness
+
+Gold is refreshed daily; the portal order views are real time.
+
 ## Typical questions → table
 
 | Question | Table |
