@@ -4,7 +4,7 @@ Organic performance of an Instagram professional account linked to a Facebook
 Page: daily account activity and feed or reel media. This is not Meta Ads.
 Stories and ads are not in these tables. There is no reel-play column.
 
-The pack is staff-only until it has been checked on a real account. A brand is
+A brand is
 filtered by the Instagram `account_id` on its connection. There is no property map.
 
 ## Tables and grain

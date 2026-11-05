@@ -4,7 +4,7 @@ Organic performance of a Facebook Page: daily Page activity, posts, and reels.
 This is not Meta Ads. Paid campaign data lives in the `gold_meta_ads_*` tables.
 Reel plays are their own rows. They are never post views.
 
-The pack is staff-only until it has been checked on a real Page. A brand is
+A brand is
 filtered by the Page `account_id` on its connection. There is no property map.
 
 ## Tables and grain
