@@ -36,7 +36,7 @@ Platform from `utm_source` (case-insensitive):
 Paid vs organic. Compare `utm_source` and `utm_medium` case-insensitively (`LOWER(...)`). Apply the rules in this order; the first match wins:
 
 1. Organic social: a Meta source and `utm_medium` is `social` and `utm_campaign IS NULL`.
-2. Paid: `utm_medium` is `cpc` or `paid`, or a Meta placement (`instagram_feed`, `instagram_stories`, `facebook_mobile_feed`, ...), or a Meta source with `utm_campaign IS NOT NULL`.
+2. Paid: `utm_medium` is `cpc` or `paid`, or contains `pauta` (a store's own paid tag, for example `pautacybermonday26`), or a Meta placement (`instagram_feed`, `instagram_stories`, `facebook_mobile_feed`, ...), or a Meta source with `utm_campaign IS NOT NULL`.
 3. Anything else: report the raw `utm_source` / `utm_medium` / `utm_campaign` and do not invent a channel.
 
 `utm_campaign` is whatever the store recorded: a Meta campaign id, a Google campaign name or free text. Do not assume it joins to ad-platform campaign ids.
