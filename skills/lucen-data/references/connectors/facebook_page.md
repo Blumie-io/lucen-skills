@@ -18,7 +18,7 @@ filtered by the Page `account_id` on its connection. There is no property map.
 `content_type` on posts and reels uses the shared words `static`, `carousel`,
 `video`, `share` and `reels`.
 
-Like, comment and share counts on posts and reels are NULL until the connector
+Comment, total-reaction and share summaries on posts and reels are NULL until the connector
 has Meta's `pages_read_user_content` permission. Treat NULL as unknown, not zero.
 Post views, unique viewers, reactions by type and reel plays are populated.
 
@@ -77,3 +77,12 @@ content is not in v1.
 | How many followers does the Page have? | `gold_facebook_page_day` (latest followers, not a sum) |
 | What did we publish, and how many lifetime views does each post have? | `gold_facebook_page_post` (latest snapshot; NULL counters mean no insights row) |
 | How many plays did our reels get? | `gold_facebook_page_reel` (`cumulative_play_count`, not a post view) |
+
+
+## Native organic splits and reel measures
+
+Daily `organic_views` and `paid_views`, and post `cumulative_organic_view_count` / `cumulative_paid_view_count`, come from native `is_from_ads` breakdown categories. Total views remain independent. Missing categories stay NULL; never subtract paid from total to fill organic.
+
+`cumulative_like_count` is like-only reactions. `cumulative_reaction_count` is all reactions, separate from likes. For reels, `cumulative_play_count` is lifetime total plays including replays (`fb_reels_total_plays`); `cumulative_initial_play_count` is initial plays (`blue_reels_play_count`). Provenance is retained. Legacy unverified play values stay NULL until refreshed. Three-second views are not substituted.
+
+Daily requests end on the last completed Pacific day and use chunks of at most 90 days. The 730-day configuration ceiling does not guarantee historical availability. Missing history remains NULL. Source zeros and negatives are preserved. Delayed rows are included when staging rebuilds from successful retained DLT loads.

@@ -2,7 +2,7 @@
 
 Organic performance of an Instagram professional account linked to a Facebook
 Page: daily account activity and feed or reel media. This is not Meta Ads.
-Stories and ads are not in these tables. There is no reel-play column.
+Stories are retained separately in `gold_instagram_story`; ads are excluded. There is no reel-play column in the Instagram media table.
 
 A brand is
 filtered by the Instagram `account_id` on its connection. There is no property map.
@@ -12,6 +12,8 @@ filtered by the Instagram `account_id` on its connection. There is no property m
 | Table | Grain | Use for |
 |---|---|---|
 | `gold_instagram_account_day` | account_id / date | Daily views, reach, profile views, account engagement, and the follower stock |
+| `gold_instagram_account_day_breakdown` | account_id / date / metric / breakdown_type / breakdown_value | Views and reach by native audience or content categories; never reconstruct parent reach by summing categories |
+| `gold_instagram_story` | account_id / story_id | Latest retained Story metadata, views, reach, replies and navigation, including expired Stories |
 | `gold_instagram_media` | account_id / media_id | Current feed and reels plus lifetime counters as of the latest snapshot |
 
 `content_type` uses the shared words `static`, `carousel`, `video` and `reels`.
@@ -24,6 +26,8 @@ day. Sum them across days.
 `reach` and `accounts_engaged` are unique counts for that day. They are chart
 values. Do not sum them into a week or a month. Reach is not an organic-view
 substitute.
+
+`follows` and `unfollows` are daily flows from the native follow_type breakdown. Sum each across days. `follows_count` is a separate stock of accounts followed. The ambiguous `follows_and_unfollows` scalar is deprecated and new observations leave it NULL.
 
 `total_interactions` is the account-day engagement when Graph returned a daily
 figure. Sum it across days. Do not sum media counters to invent it. NULL means
@@ -40,7 +44,9 @@ the current total. The difference of two snapshots is the change, and this pack
 does not precompute that difference. `published_date` is when the media was
 published, not the day the views were earned.
 
-Count media as distinct ids, not as raw insight rows.
+Count media as distinct ids, not as raw insight rows. `cumulative_repost_count` is the native lifetime repost count.
+
+Story navigation columns map forward/back/exit/next-story actions to TAP_FORWARD/TAP_BACK/TAP_EXIT/SWIPE_FORWARD. The navigation total remains independently collected. Missing metrics remain NULL. Stories are observed on the existing daily job and can be missed between successful runs. Stored media URLs may expire.
 
 NULL means Graph did not return the metric. It is not zero. Do not estimate
 organic as total minus paid.
@@ -66,7 +72,7 @@ Video and reels prefer the thumbnail. Photos and carousels prefer the full image
 None. These are organic account interactions, with no attribution window.
 Account insights can restate recent days. The steady extract re-fetches the
 last 7 days. Media published in the last 90 days is refreshed; older media is
-not in v1.
+outside the publication refresh window. The configured 730-day daily ceiling is not a promise of metric retention. Daily totals use completed Pacific calendar days, with reach requested per day. Successful empty breakdown refreshes remove old categories; expired Stories remain retained.
 
 ## Typical questions → table
 
