@@ -78,3 +78,20 @@ Campaign reach/frequency are native daily metrics and remain nonadditive.
 | Which ads / creatives? | `gold_meta_ads_ad_performance` |
 | Link clicks at 7-day click? | `gold_meta_ads_action_performance` |
 | Reach by country? | Say native geo-row reach only; account reach is the account table |
+
+## Campaign demographics (LUC-513)
+
+`gold_meta_ads_campaign_demographic_performance` reports one row per account,
+campaign, day, age and gender. Compare delivery and ad-attributed Instagram
+profile visits/follows across demographic buckets. Use unbroken campaign gold
+for campaign totals and existing demographic gold for account-level reporting.
+These reports overlap: never sum them together or allocate unsegmented actions
+to demographic buckets. Unknown provider labels remain unchanged; suppressed or
+missing buckets are not inferred.
+
+Instagram visits and follows retain provider-default delivery attribution (no
+explicit window/unified setting). Unsupported/omitted values remain NULL.
+Cost per visit/follow is spend divided by the corresponding count; zero/missing
+counts yield NULL. Aggregate using matching sums, not averaged row costs; exclude
+unavailable-result rows from both sums and disclose incomplete coverage. Reach,
+frequency and unique metrics are non-additive across dates/campaigns.
