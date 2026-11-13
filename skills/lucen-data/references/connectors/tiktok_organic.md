@@ -10,6 +10,7 @@ different app, connector and bronze dataset. A brand is filtered by the TikTok
 | Table | Grain | Use for |
 |---|---|---|
 | `gold_tiktok_organic_account_day` | open_id / snapshot_date | Followers, following, lifetime likes and public video count as read each day, and their change since the previous snapshot |
+| `gold_tiktok_organic_video` | open_id / video_id | The account's current public videos with lifetime views, likes, comments and shares, and their change since the video's previous snapshot |
 
 ## Additive / non-additive
 
@@ -25,6 +26,8 @@ run a change spans every day since `previous_snapshot_date`, so do not read it a
 one day. Sum a change over a period only when `previous_snapshot_date` shows no
 gap, or take the difference of the first and last `cumulative_*` values instead.
 
+`gold_tiktok_organic_video` counters are `cumulative_*`: lifetime totals as of `snapshot_date`. Do not sum them across days. Its table is the current state, not history: only public videos from the latest completed run appear, so a deleted or now-private video disappears. Count videos as distinct `video_id`. `published_date` is when the video was created, not when its views were earned. `view_change` and the other `*_change` columns compare against the video's previous snapshot and are NULL the first time a video is seen.
+
 NULL means TikTok did not return the field. It is not zero.
 
 ## Ratios
@@ -36,8 +39,8 @@ days.
 
 Do not sum `cumulative_*` columns across days. Do not join this connector to
 `gold_tiktok_ads_*` as if both were paid spend, and do not blend it with
-Instagram or Facebook Page in this pack. Per-video metrics are not in this
-table.
+Instagram or Facebook Page in this pack. Watch time, reach and audience
+breakdowns are not available from this API.
 
 ## Attribution
 
@@ -50,4 +53,5 @@ are read once per daily run, so a day with no run has no row.
 |---|---|
 | How many followers does the account have? | `gold_tiktok_organic_account_day` (latest `cumulative_follower_count`, not a sum) |
 | How many followers did we gain last week? | `gold_tiktok_organic_account_day` (last minus first `cumulative_follower_count`; check `previous_snapshot_date` for gaps) |
+| Which videos perform best? | `gold_tiktok_organic_video` (rank by `cumulative_view_count`; compare videos by `published_date`) |
 | How many videos has the account published? | `gold_tiktok_organic_account_day` (latest `cumulative_video_count`) |
